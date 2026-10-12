@@ -1,17 +1,23 @@
-import React, { useState } from 'react';
-import { 
-  X, 
-  ShieldAlert, 
-  Bot, 
-  ExternalLink, 
-  Lock, 
-  AlertTriangle, 
-  CheckCircle2, 
-  ShieldX, 
+﻿import React, { useState } from 'react';
+import {
+  X,
+  ShieldAlert,
+  Bot,
+  ExternalLink,
+  Lock,
+  AlertTriangle,
+  CheckCircle2,
+  ShieldX,
   Copy,
-  Check
+  Check,
+  ChevronRight,
+  GitBranch,
+  Bug,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
-import { DependencyNode } from '../types';
+import { DependencyNode, Vulnerability } from '../types';
+import { getGithubAvatarUrl } from '../services/api';
 
 interface ThreatDrawerProps {
   node: DependencyNode | null;
@@ -20,31 +26,190 @@ interface ThreatDrawerProps {
   onOverride: (nodeId: string) => void;
 }
 
-export const ThreatDrawer: React.FC<ThreatDrawerProps> = ({
-  node,
-  onClose,
-  onIsolate,
-  onOverride,
-}) => {
+// ─── Risk Flag Chip colours ────────────────────────────────────────────────────
+const FLAG_COLORS: Record<string, string> = {
+  'Known CVEs found':            'bg-rose-500/15 border-rose-500/40 text-rose-400',
+  'Low maintainer count':        'bg-amber-500/15 border-amber-500/40 text-amber-400',
+  'Single maintainer':           'bg-amber-500/15 border-amber-500/40 text-amber-400',
+  'Maintainer velocity anomaly': 'bg-amber-500/15 border-amber-500/40 text-amber-400',
+  'No license detected':         'bg-sky-500/15 border-sky-500/40 text-sky-400',
+  'Unpinned version':            'bg-sky-500/15 border-sky-500/40 text-sky-400',
+  'Deprecated package':          'bg-rose-500/15 border-rose-500/40 text-rose-400',
+};
+
+function chipColor(flag: string): string {
+  if (FLAG_COLORS[flag]) return FLAG_COLORS[flag];
+  const lower = flag.toLowerCase();
+  if (lower.includes('cve') || lower.includes('vuln') || lower.includes('critical') || lower.includes('exploit'))
+    return 'bg-rose-500/15 border-rose-500/40 text-rose-400';
+  if (lower.includes('maintainer') || lower.includes('velocity') || lower.includes('count') || lower.includes('anomaly'))
+    return 'bg-amber-500/15 border-amber-500/40 text-amber-400';
+  return 'bg-sky-500/15 border-sky-500/40 text-sky-400';
+}
+
+// ─── Severity badge ────────────────────────────────────────────────────────────
+function severityBadge(severity?: string): string {
+  switch (severity) {
+    case 'critical': return 'bg-rose-500/15 border-rose-500/40 text-rose-400';
+    case 'high':     return 'bg-orange-500/15 border-orange-500/40 text-orange-400';
+    case 'medium':   return 'bg-amber-500/15 border-amber-500/40 text-amber-400';
+    default:         return 'bg-sky-500/15 border-sky-500/40 text-sky-400';
+  }
+}
+
+// ─── Vulnerability Detail Drawer ───────────────────────────────────────────────
+interface VulnDrawerProps {
+  vuln: Vulnerability;
+  onClose: () => void;
+}
+
+const VulnerabilityDetailDrawer: React.FC<VulnDrawerProps> = ({ vuln, onClose }) => (
+  <div className="fixed inset-0 z-[60] overflow-hidden bg-black/80 backdrop-blur-md flex justify-end animate-in fade-in duration-200">
+    <div className="absolute inset-0" onClick={onClose} />
+    <div className="relative w-full max-w-lg bg-[#0e100f] border-l border-stone-800 h-full overflow-y-auto p-6 sm:p-8 flex flex-col gap-6 shadow-2xl z-10 animate-in slide-in-from-right duration-300">
+
+      {/* Header */}
+      <div className="flex items-center justify-between pb-4 border-b border-stone-800">
+        <div className="flex items-center gap-2">
+          <Bug className="w-4 h-4 text-rose-400" />
+          <span className="text-xs font-mono uppercase tracking-wider text-stone-400">VULNERABILITY DETAIL</span>
+        </div>
+        <button onClick={onClose} className="p-2 rounded-xl bg-[#0b0d0c] border border-stone-800 hover:border-stone-700 text-stone-400 hover:text-white transition-colors">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* ID + Title */}
+      <div>
+        <div className="flex items-center gap-2 flex-wrap mb-2">
+          <span className="font-mono font-bold text-rose-400 text-lg">{vuln.cve_id || vuln.id}</span>
+          {vuln.severity && (
+            <span className={`text-[10px] px-2.5 py-0.5 rounded-full border font-semibold uppercase ${severityBadge(vuln.severity)}`}>
+              {vuln.severity}
+            </span>
+          )}
+        </div>
+        {vuln.title && <p className="text-sm font-medium text-stone-100">{vuln.title}</p>}
+      </div>
+
+      {/* CVSS */}
+      {vuln.cvss_score !== undefined && (
+        <div className="p-4 rounded-2xl bg-[#121412] border border-stone-800 flex items-center justify-between">
+          <span className="text-xs text-stone-400 font-sans">CVSS v3 Score</span>
+          <span className={`text-2xl font-extrabold font-mono ${
+            vuln.cvss_score >= 9 ? 'text-rose-400' :
+            vuln.cvss_score >= 7 ? 'text-orange-400' :
+            vuln.cvss_score >= 4 ? 'text-amber-400' : 'text-sky-400'
+          }`}>
+            {vuln.cvss_score.toFixed(1)}
+          </span>
+        </div>
+      )}
+
+      {/* Description */}
+      {vuln.description && (
+        <div>
+          <p className="text-[10px] text-stone-500 uppercase tracking-wider mb-1.5 font-semibold">Description</p>
+          <p className="text-sm text-stone-300 leading-relaxed">{vuln.description}</p>
+        </div>
+      )}
+
+      {/* CWE */}
+      {vuln.cwe && vuln.cwe.length > 0 && (
+        <div>
+          <p className="text-[10px] text-stone-500 uppercase tracking-wider mb-1.5 font-semibold">CWE</p>
+          <div className="flex flex-wrap gap-1.5">
+            {vuln.cwe.map((c) => (
+              <span key={c} className="px-2.5 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 text-xs font-mono">{c}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Fixed version */}
+      {vuln.fixed_version && (
+        <div className="p-3.5 rounded-2xl bg-lime-950/30 border border-lime-800/40 flex items-center justify-between">
+          <span className="text-xs text-stone-400">Upgrade to</span>
+          <span className="font-mono text-lime-400 font-bold">v{vuln.fixed_version}</span>
+        </div>
+      )}
+
+      {/* Dates */}
+      {(vuln.published_at || vuln.modified_at) && (
+        <div className="grid grid-cols-2 gap-3 text-xs">
+          {vuln.published_at && (
+            <div className="p-3 rounded-xl bg-[#121412] border border-stone-800">
+              <span className="text-stone-500 block text-[10px] mb-0.5">PUBLISHED</span>
+              <span className="font-mono text-stone-300">{new Date(vuln.published_at).toLocaleDateString()}</span>
+            </div>
+          )}
+          {vuln.modified_at && (
+            <div className="p-3 rounded-xl bg-[#121412] border border-stone-800">
+              <span className="text-stone-500 block text-[10px] mb-0.5">LAST MODIFIED</span>
+              <span className="font-mono text-stone-300">{new Date(vuln.modified_at).toLocaleDateString()}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* References */}
+      {vuln.references && vuln.references.length > 0 && (
+        <div>
+          <p className="text-[10px] text-stone-500 uppercase tracking-wider mb-1.5 font-semibold">References</p>
+          <div className="space-y-1">
+            {vuln.references.slice(0, 5).map((ref, i) => (
+              <a key={i} href={ref} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs text-lime-400 hover:underline font-mono truncate">
+                <ExternalLink className="w-3 h-3 shrink-0" />
+                {ref}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* OSV link */}
+      <a
+        href={`https://osv.dev/vulnerability/${vuln.cve_id || vuln.id}`}
+        target="_blank" rel="noopener noreferrer"
+        className="w-full py-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold text-center hover:bg-rose-500/20 transition-all flex items-center justify-center gap-2"
+      >
+        <ExternalLink className="w-3.5 h-3.5" />
+        View Full Advisory on OSV.dev
+      </a>
+    </div>
+  </div>
+);
+
+// ─── Main ThreatDrawer ─────────────────────────────────────────────────────────
+export const ThreatDrawer: React.FC<ThreatDrawerProps> = ({ node, onClose, onIsolate, onOverride }) => {
   const [isolated, setIsolated] = useState(false);
   const [overridden, setOverridden] = useState(false);
   const [copiedHash, setCopiedHash] = useState(false);
+  const [selectedVuln, setSelectedVuln] = useState<Vulnerability | null>(null);
+  const [vulnsExpanded, setVulnsExpanded] = useState(false);
 
   if (!node) return null;
 
   const isCritical = node.status === 'critical';
-  const isWarning = node.status === 'warning';
+  const isWarning  = node.status === 'warning';
 
-  const handleIsolateClick = () => {
-    setIsolated(true);
-    onIsolate(node.id);
+  // Access extended fields added by transformBackendResponse
+  const extNode = node as typeof node & {
+    riskFlags?: string[];
+    dependencyPath?: string[];
+    maintainers?: { name: string; email?: string; github?: string; username?: string }[];
+    vulnerabilities?: Vulnerability[];
   };
 
-  const handleOverrideClick = () => {
-    setOverridden(true);
-    onOverride(node.id);
-  };
+  const riskFlags   = extNode.riskFlags     ?? [];
+  const depPath     = extNode.dependencyPath ?? (node.parentPackage ? ['root', node.parentPackage, node.name] : ['root', node.name]);
+  const maintainers = extNode.maintainers   ?? [];
+  const vulns       = extNode.vulnerabilities ?? [];
+  const vulnsToShow = vulnsExpanded ? vulns : vulns.slice(0, 3);
 
+  const handleIsolateClick  = () => { setIsolated(true);  onIsolate(node.id); };
+  const handleOverrideClick = () => { setOverridden(true); onOverride(node.id); };
   const handleCopyHash = () => {
     if (node.polygonHash) {
       navigator.clipboard.writeText(node.polygonHash);
@@ -54,228 +219,288 @@ export const ThreatDrawer: React.FC<ThreatDrawerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/75 backdrop-blur-md flex justify-end animate-in fade-in duration-200">
-      {/* Click outside backdrop */}
-      <div className="absolute inset-0" onClick={onClose} />
+    <>
+      <div className="fixed inset-0 z-50 overflow-hidden bg-black/75 backdrop-blur-md flex justify-end animate-in fade-in duration-200">
+        <div className="absolute inset-0" onClick={onClose} />
 
-      {/* Right-hand Slide-out Panel */}
-      <div className="relative w-full max-w-xl bg-[#121412] border-l border-stone-800 h-full overflow-y-auto p-6 sm:p-8 flex flex-col justify-between shadow-2xl z-10 animate-in slide-in-from-right duration-300">
-        
-        <div>
-          {/* Drawer Header */}
-          <div className="flex items-center justify-between pb-4 border-b border-stone-800">
-            <div className="flex items-center space-x-2">
-              <span className={`w-2.5 h-2.5 rounded-full ${
-                isCritical ? 'bg-rose-500' : isWarning ? 'bg-amber-500' : 'bg-lime-500'
-              }`} />
-              <span className="text-xs font-mono uppercase tracking-wider text-stone-400">
-                THREAT AUDIT DRAWER // {node.category}
-              </span>
+        <div className="relative w-full max-w-xl bg-[#121412] border-l border-stone-800 h-full overflow-y-auto p-6 sm:p-8 flex flex-col justify-between shadow-2xl z-10 animate-in slide-in-from-right duration-300">
+          <div>
+
+            {/* ── Header ── */}
+            <div className="flex items-center justify-between pb-4 border-b border-stone-800">
+              <div className="flex items-center space-x-2">
+                <span className={`w-2.5 h-2.5 rounded-full ${isCritical ? 'bg-rose-500' : isWarning ? 'bg-amber-500' : 'bg-lime-500'}`} />
+                <span className="text-xs font-mono uppercase tracking-wider text-stone-400">
+                  THREAT AUDIT DRAWER // {node.category}
+                </span>
+              </div>
+              <button onClick={onClose} className="p-2 rounded-xl bg-[#0b0d0c] border border-stone-800 hover:border-stone-700 text-stone-400 hover:text-white transition-colors">
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            <button
-              onClick={onClose}
-              className="p-2 rounded-full bg-[#0b0d0c] border border-stone-800 hover:border-stone-700 text-stone-400 hover:text-white transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Package Title & Risk Score Gauge */}
-          <div className="py-6 border-b border-stone-800">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-sans font-bold text-stone-100 tracking-tight">
-                  {node.name}
-                </h2>
-                <div className="text-xs font-mono text-lime-400 mt-1">
-                  Version: v{node.version} • License: {node.license}
+            {/* ── Package Title & Risk Score ── */}
+            <div className="py-6 border-b border-stone-800">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-sans font-bold text-stone-100 tracking-tight">{node.name}</h2>
+                  <div className="text-xs font-mono text-lime-400 mt-1">Version: v{node.version} • License: {node.license}</div>
                 </div>
-              </div>
-
-              {/* Risk Badge Gauge */}
-              <div className={`px-4 py-2 rounded-2xl text-center border shrink-0 ${
-                isCritical
-                  ? 'bg-rose-500/15 border-rose-500/40 text-rose-400'
-                  : isWarning
-                  ? 'bg-amber-500/15 border-amber-500/40 text-amber-400'
-                  : 'bg-lime-950/40 border-lime-800/40 text-lime-400'
-              }`}>
-                <div className="text-[10px] font-sans font-semibold tracking-wider">RISK SCORE</div>
-                <div className="text-2xl font-sans font-extrabold">{node.riskScore} / 100</div>
-              </div>
-            </div>
-
-            {/* Quick Metadata Pill Row */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mt-4 font-sans text-xs">
-              <div className="p-3 rounded-2xl bg-[#0b0d0c] border border-stone-800">
-                <span className="text-stone-500 block text-[10px]">MAINTAINER</span>
-                <span className="text-stone-200 truncate block font-medium">{node.maintainer}</span>
-              </div>
-              <div className="p-3 rounded-2xl bg-[#0b0d0c] border border-stone-800">
-                <span className="text-stone-500 block text-[10px]">DOWNLOADS</span>
-                <span className="text-stone-200 font-medium">{node.downloads}</span>
-              </div>
-              <div className="p-3 rounded-2xl bg-[#0b0d0c] border border-stone-800">
-                <span className="text-stone-500 block text-[10px]">VELOCITY RISK</span>
-                <span className={`capitalize font-bold ${
-                  node.maintainerRisk === 'critical' ? 'text-rose-400' :
-                  node.maintainerRisk === 'medium' ? 'text-amber-400' : 'text-lime-400'
+                <div className={`px-4 py-2 rounded-2xl text-center border shrink-0 ${
+                  isCritical ? 'bg-rose-500/15 border-rose-500/40 text-rose-400' :
+                  isWarning  ? 'bg-amber-500/15 border-amber-500/40 text-amber-400' :
+                               'bg-lime-950/40 border-lime-800/40 text-lime-400'
                 }`}>
-                  {node.maintainerRisk}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* PARAM'S AI THREAT EXPLANATION */}
-          <div className="my-6">
-            <div className="rounded-2xl bg-gradient-to-br from-[#121812] to-[#0e120f] border border-lime-800/40 p-5 relative overflow-hidden">
-              <div className="flex items-center space-x-2 text-lime-400 text-xs font-sans font-bold mb-2.5 pb-2 border-b border-stone-800">
-                <Bot className="w-4 h-4" />
-                <span>PARAM'S AI THREAT EXPLAINER</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-lime-950/60 text-lime-400 font-mono border border-lime-800/40">
-                  v3.8-HEURISTICS
-                </span>
+                  <div className="text-[10px] font-sans font-semibold tracking-wider">RISK SCORE</div>
+                  <div className="text-2xl font-sans font-extrabold">{node.riskScore} / 100</div>
+                </div>
               </div>
 
-              <div className="text-sm font-sans text-stone-200 leading-relaxed space-y-2">
-                <p className="font-medium text-white">
-                  {node.aiExplanation || "Param's AI Analysis: Continuous heuristic evaluation active. No active zero-day anomalies detected in release artifacts."}
-                </p>
-                <div className="text-xs font-mono text-stone-400 pt-2 border-t border-stone-800">
-                  <span className="text-lime-300">Anomaly Fingerprint:</span> Sudden maintainer email modification combined with high-entropy binary payload inside test fixtures.
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mt-4 font-sans text-xs">
+                <div className="p-3 rounded-2xl bg-[#0b0d0c] border border-stone-800">
+                  <span className="text-stone-500 block text-[10px]">MAINTAINER</span>
+                  <span className="text-stone-200 truncate block font-medium">{node.maintainer}</span>
+                </div>
+                <div className="p-3 rounded-2xl bg-[#0b0d0c] border border-stone-800">
+                  <span className="text-stone-500 block text-[10px]">DOWNLOADS</span>
+                  <span className="text-stone-200 font-medium">{node.downloads}</span>
+                </div>
+                <div className="p-3 rounded-2xl bg-[#0b0d0c] border border-stone-800">
+                  <span className="text-stone-500 block text-[10px]">VELOCITY RISK</span>
+                  <span className={`capitalize font-bold ${
+                    node.maintainerRisk === 'critical' ? 'text-rose-400' :
+                    node.maintainerRisk === 'high'     ? 'text-orange-400' :
+                    node.maintainerRisk === 'medium'   ? 'text-amber-400' : 'text-lime-400'
+                  }`}>{node.maintainerRisk}</span>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* OSV.dev & CVE Vulnerability Matches */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between text-xs font-sans text-stone-400 mb-2.5">
-              <span className="flex items-center gap-1.5 text-stone-200 font-semibold">
-                <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
-                OSV.dev &amp; CVE Vulnerability Matches
-              </span>
-              <span>{node.cves.length} Detected</span>
+            {/* ── DEPENDENCY PATH PANEL ── */}
+            {depPath.length > 0 && (
+              <div className="my-5">
+                <div className="flex items-center gap-1.5 text-[10px] text-stone-500 uppercase tracking-wider font-semibold mb-2">
+                  <GitBranch className="w-3.5 h-3.5 text-lime-600" />
+                  Dependency Path
+                </div>
+                <div className="p-3.5 rounded-2xl bg-[#0b0d0c] border border-stone-800 flex flex-wrap items-center gap-1 font-mono text-xs">
+                  {depPath.map((seg, idx) => (
+                    <React.Fragment key={idx}>
+                      <span className={idx === depPath.length - 1
+                        ? (isCritical ? 'text-rose-400 font-bold' : isWarning ? 'text-amber-400 font-bold' : 'text-lime-400 font-bold')
+                        : 'text-stone-400'}>
+                        {seg}
+                      </span>
+                      {idx < depPath.length - 1 && <ChevronRight className="w-3 h-3 text-stone-600 shrink-0" />}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── RISK FLAG CHIPS ── */}
+            {riskFlags.length > 0 && (
+              <div className="mb-5">
+                <div className="text-[10px] text-stone-500 uppercase tracking-wider font-semibold mb-2">Risk Flags</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {riskFlags.map((flag) => (
+                    <span key={flag} className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${chipColor(flag)}`}>
+                      {flag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── AI THREAT EXPLANATION ── */}
+            <div className="my-6">
+              <div className="rounded-2xl bg-gradient-to-br from-[#121812] to-[#0e120f] border border-lime-800/40 p-5 relative overflow-hidden">
+                <div className="flex items-center space-x-2 text-lime-400 text-xs font-sans font-bold mb-2.5 pb-2 border-b border-stone-800">
+                  <Bot className="w-4 h-4" />
+                  <span>PARAM'S AI THREAT EXPLAINER</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-lime-950/60 text-lime-400 font-mono border border-lime-800/40">v3.8-HEURISTICS</span>
+                </div>
+                <div className="text-sm font-sans text-stone-200 leading-relaxed">
+                  <p className="font-medium text-white">
+                    {node.aiExplanation || "Param's AI Analysis: Continuous heuristic evaluation active. No active zero-day anomalies detected in release artifacts."}
+                  </p>
+                  <div className="text-xs font-mono text-stone-400 pt-2 mt-2 border-t border-stone-800">
+                    <span className="text-lime-300">Anomaly Fingerprint:</span>{' '}
+                    Sudden maintainer email modification combined with high-entropy binary payload inside test fixtures.
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {node.cves.length > 0 ? (
-              <div className="space-y-2 text-xs font-mono">
-                {node.cves.map((cve) => (
-                  <div
-                    key={cve}
-                    className="p-3 rounded-2xl bg-[#0b0d0c] border border-rose-500/30 flex items-center justify-between"
-                  >
-                    <div>
-                      <span className="text-rose-400 font-bold">{cve}</span>
-                      <span className="text-stone-400 text-[11px] font-sans block mt-0.5">
-                        Supply chain remote code execution &amp; credential leakage vector
-                      </span>
-                    </div>
-                    <a
-                      href={`https://osv.dev/vulnerability/${cve}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-lime-400 hover:underline text-[11px] flex items-center gap-1"
-                    >
-                      <span>OSV Record</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-                ))}
+            {/* ── MAINTAINER AVATARS ── */}
+            {maintainers.length > 0 && (
+              <div className="mb-5">
+                <div className="text-[10px] text-stone-500 uppercase tracking-wider font-semibold mb-2">
+                  Maintainers ({maintainers.length})
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {maintainers.map((m, idx) => {
+                    const username = m.github || m.username || m.name;
+                    const avatarUrl = getGithubAvatarUrl(username, 40);
+                    return (
+                      <div key={idx} className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-[#0b0d0c] border border-stone-800 text-xs font-sans" title={m.email || m.name}>
+                        <img
+                          src={avatarUrl}
+                          alt={m.name}
+                          className="w-5 h-5 rounded-full bg-stone-800 object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(m.name)}&background=1a1a1a&color=lime&size=40`;
+                          }}
+                        />
+                        <span className="text-stone-300 font-medium truncate max-w-[120px]">{m.name}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            ) : (
-              <div className="p-3.5 rounded-2xl bg-[#0b0d0c] border border-stone-800 text-xs font-sans text-lime-400 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Zero published CVE advisories currently linked to this package.</span>
+            )}
+
+            {/* ── VULNERABILITIES ── */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between text-xs font-sans text-stone-400 mb-2.5">
+                <span className="flex items-center gap-1.5 text-stone-200 font-semibold">
+                  <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                  OSV.dev &amp; CVE Vulnerability Matches
+                </span>
+                <span>{vulns.length > 0 ? `${vulns.length} Detected` : `${node.cves.length} Detected`}</span>
+              </div>
+
+              {vulns.length > 0 ? (
+                <div className="space-y-2 text-xs font-mono">
+                  {vulnsToShow.map((vuln) => (
+                    <button
+                      key={vuln.id}
+                      onClick={() => setSelectedVuln(vuln)}
+                      className="w-full text-left p-3 rounded-2xl bg-[#0b0d0c] border border-rose-500/30 hover:border-rose-500/60 transition-all group flex items-start justify-between gap-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                          <span className="text-rose-400 font-bold">{vuln.cve_id || vuln.id}</span>
+                          {vuln.severity && (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold uppercase ${severityBadge(vuln.severity)}`}>
+                              {vuln.severity}
+                            </span>
+                          )}
+                          {vuln.cvss_score !== undefined && (
+                            <span className="text-[10px] text-stone-400 font-sans">CVSS {vuln.cvss_score.toFixed(1)}</span>
+                          )}
+                        </div>
+                        {vuln.title && <span className="text-stone-300 text-[11px] font-sans truncate block max-w-xs">{vuln.title}</span>}
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 text-lime-400 shrink-0 mt-0.5 opacity-50 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                  ))}
+                  {vulns.length > 3 && (
+                    <button onClick={() => setVulnsExpanded((p) => !p)}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 text-lime-400 text-xs font-sans hover:underline">
+                      {vulnsExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      {vulnsExpanded ? 'Show less' : `Show ${vulns.length - 3} more`}
+                    </button>
+                  )}
+                </div>
+              ) : node.cves.length > 0 ? (
+                <div className="space-y-2 text-xs font-mono">
+                  {node.cves.map((cve) => (
+                    <div key={cve} className="p-3 rounded-2xl bg-[#0b0d0c] border border-rose-500/30 flex items-center justify-between">
+                      <div>
+                        <span className="text-rose-400 font-bold">{cve}</span>
+                        <span className="text-stone-400 text-[11px] font-sans block mt-0.5">Supply chain remote code execution &amp; credential leakage vector</span>
+                      </div>
+                      <a href={`https://osv.dev/vulnerability/${cve}`} target="_blank" rel="noopener noreferrer"
+                        className="text-lime-400 hover:underline text-[11px] flex items-center gap-1">
+                        <span>OSV Record</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-2xl bg-[#0b0d0c] border border-stone-800 text-xs font-sans text-lime-400 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Zero published CVE advisories currently linked to this package.</span>
+                </div>
+              )}
+            </div>
+
+            {/* ── POLYGON AUDIT RECEIPT ── */}
+            {node.polygonHash && (
+              <div className="mb-6 p-3.5 rounded-2xl bg-[#0b0d0c] border border-stone-800 font-mono text-xs">
+                <div className="flex items-center justify-between text-[11px] text-stone-400 pb-2 border-b border-stone-800">
+                  <span className="flex items-center gap-1 text-lime-400">
+                    <Lock className="w-3.5 h-3.5" />
+                    POLYGON AUDIT RECEIPT
+                  </span>
+                  <span className="text-stone-500">Block #5,928,174</span>
+                </div>
+                <div className="flex items-center justify-between mt-2.5">
+                  <span className="text-lime-300 truncate max-w-[240px]">{node.polygonHash}</span>
+                  <button onClick={handleCopyHash}
+                    className="text-[11px] text-stone-300 hover:text-white px-2.5 py-1 rounded-xl bg-stone-900 border border-stone-800 flex items-center gap-1.5">
+                    {copiedHash ? <Check className="w-3 h-3 text-lime-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedHash ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── Feedback toasts ── */}
+            {isolated && (
+              <div className="mb-4 p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-xs font-sans text-rose-300 flex items-center gap-2.5">
+                <ShieldX className="w-4 h-4 shrink-0 text-rose-400" />
+                <span>PACKAGE QUARANTINED: Build scripts stripped &amp; lockfile pinned to clean fallback.</span>
+              </div>
+            )}
+            {overridden && (
+              <div className="mb-4 p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-xs font-sans text-amber-300 flex items-center gap-2.5">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+                <span>OVERRIDE SIGNED: Whitelisted by Ethan Reynolds with cryptographic signature.</span>
               </div>
             )}
           </div>
 
-          {/* Blockchain Trust Proof for this package */}
-          {node.polygonHash && (
-            <div className="mb-6 p-3.5 rounded-2xl bg-[#0b0d0c] border border-stone-800 font-mono text-xs">
-              <div className="flex items-center justify-between text-[11px] text-stone-400 pb-2 border-b border-stone-800">
-                <span className="flex items-center gap-1 text-lime-400">
-                  <Lock className="w-3.5 h-3.5" />
-                  POLYGON AUDIT RECEIPT
-                </span>
-                <span className="text-stone-500">Block #5,928,174</span>
-              </div>
-              <div className="flex items-center justify-between mt-2.5">
-                <span className="text-lime-300 truncate max-w-[240px]">
-                  {node.polygonHash}
-                </span>
-                <button
-                  onClick={handleCopyHash}
-                  className="text-[11px] text-stone-300 hover:text-white px-3 py-1 rounded-full bg-stone-900 border border-stone-800 flex items-center gap-1.5"
-                >
-                  {copiedHash ? <Check className="w-3 h-3 text-lime-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedHash ? 'Copied' : 'Copy'}</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Isolation State Feedback Toast */}
-          {isolated && (
-            <div className="mb-4 p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-xs font-sans text-rose-300 flex items-center gap-2.5">
-              <ShieldX className="w-4 h-4 shrink-0 text-rose-400" />
-              <span>PACKAGE QUARANTINED: Build scripts stripped &amp; lockfile pinned to clean fallback.</span>
-            </div>
-          )}
-
-          {overridden && (
-            <div className="mb-4 p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-xs font-sans text-amber-300 flex items-center gap-2.5">
-              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
-              <span>OVERRIDE SIGNED: Whitelisted by Ethan Reynolds with cryptographic signature.</span>
-            </div>
-          )}
-        </div>
-
-        {/* Action Buttons: Isolate Package, Override, View Code on GitHub */}
-        <div className="pt-6 border-t border-stone-800 space-y-3">
-          <button
-            onClick={handleIsolateClick}
-            disabled={isolated}
-            className={`w-full py-3.5 rounded-full font-sans text-xs font-bold tracking-wider flex items-center justify-center space-x-2 transition-all ${
-              isolated
-                ? 'bg-[#0b0d0c] text-stone-500 border border-stone-800 cursor-not-allowed'
-                : 'bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white shadow-lg active:scale-95'
-            }`}
-          >
-            <ShieldAlert className="w-4 h-4" />
-            <span>{isolated ? 'PACKAGE ISOLATED' : 'ISOLATE PACKAGE'}</span>
-          </button>
-
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={handleOverrideClick}
-              disabled={overridden}
-              className={`py-3 rounded-full font-sans text-xs font-semibold tracking-wider flex items-center justify-center space-x-1.5 transition-all ${
-                overridden
+          {/* ── Action Buttons ── */}
+          <div className="pt-6 border-t border-stone-800 space-y-3">
+            <button onClick={handleIsolateClick} disabled={isolated}
+              className={`w-full py-3.5 rounded-2xl font-sans text-xs font-bold tracking-wider flex items-center justify-center space-x-2 transition-all ${
+                isolated
                   ? 'bg-[#0b0d0c] text-stone-500 border border-stone-800 cursor-not-allowed'
-                  : 'bg-[#0b0d0c] hover:bg-stone-900 text-stone-200 border border-stone-800 hover:border-lime-700/50'
-              }`}
-            >
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-              <span>{overridden ? 'OVERRIDDEN' : 'OVERRIDE'}</span>
+                  : 'bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white shadow-lg active:scale-95'
+              }`}>
+              <ShieldAlert className="w-4 h-4" />
+              <span>{isolated ? 'PACKAGE ISOLATED' : 'ISOLATE PACKAGE'}</span>
             </button>
 
-            <a
-              href={`https://github.com/search?q=${encodeURIComponent(node.name)}&type=repositories`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="py-3 rounded-full font-sans text-xs font-semibold tracking-wider flex items-center justify-center space-x-1.5 bg-[#0b0d0c] hover:bg-stone-900 text-stone-200 border border-stone-800 hover:border-lime-700/50 transition-all"
-            >
-              <span>GITHUB</span>
-              <ExternalLink className="w-3.5 h-3.5 text-lime-400" />
-            </a>
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={handleOverrideClick} disabled={overridden}
+                className={`py-3 rounded-2xl font-sans text-xs font-semibold tracking-wider flex items-center justify-center space-x-1.5 transition-all ${
+                  overridden
+                    ? 'bg-[#0b0d0c] text-stone-500 border border-stone-800 cursor-not-allowed'
+                    : 'bg-[#0b0d0c] hover:bg-stone-900 text-stone-200 border border-stone-800 hover:border-lime-700/50'
+                }`}>
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                <span>{overridden ? 'OVERRIDDEN' : 'OVERRIDE'}</span>
+              </button>
+
+              <a href={`https://github.com/search?q=${encodeURIComponent(node.name)}&type=repositories`}
+                target="_blank" rel="noopener noreferrer"
+                className="py-3 rounded-2xl font-sans text-xs font-semibold tracking-wider flex items-center justify-center space-x-1.5 bg-[#0b0d0c] hover:bg-stone-900 text-stone-200 border border-stone-800 hover:border-lime-700/50 transition-all">
+                <span>GITHUB</span>
+                <ExternalLink className="w-3.5 h-3.5 text-lime-400" />
+              </a>
+            </div>
           </div>
         </div>
-
       </div>
-    </div>
+
+      {/* Vuln detail drawer stacked on top */}
+      {selectedVuln && (
+        <VulnerabilityDetailDrawer vuln={selectedVuln} onClose={() => setSelectedVuln(null)} />
+      )}
+    </>
   );
 };
