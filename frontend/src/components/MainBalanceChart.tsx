@@ -1,0 +1,193 @@
+import React, { useState } from 'react';
+import { ArrowUpRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
+
+type TimeFilter = '1 year' | '6 month' | '3-month' | '1 month';
+
+export const MainBalanceChart: React.FC = () => {
+  const [filter, setFilter] = useState<TimeFilter>('1 year');
+  const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
+
+  // Time datasets with codebase security index percentages
+  const datasets: Record<TimeFilter, { labels: string[]; values: number[]; percent: string }> = {
+    '1 year': {
+      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+      values: [82.4, 85.1, 84.0, 88.5, 87.2, 91.0, 93.4, 92.8, 95.6, 94.9, 97.2, 98.4],
+      percent: '↑ 2.92% Integrity',
+    },
+    '6 month': {
+      labels: ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+      values: [91.0, 92.5, 93.4, 94.0, 96.8, 98.4],
+      percent: '↑ 3.84% Integrity',
+    },
+    '3-month': {
+      labels: ['Aug', 'Sep', 'Oct'],
+      values: [94.0, 96.2, 98.4],
+      percent: '↑ 1.75% Integrity',
+    },
+    '1 month': {
+      labels: ['W1', 'W2', 'W3', 'W4'],
+      values: [96.8, 97.4, 98.0, 98.4],
+      percent: '↑ 0.98% Integrity',
+    },
+  };
+
+  const currentData = datasets[filter];
+  const maxVal = 100;
+  const minVal = 75;
+
+  // SVG dimensions
+  const svgWidth = 680;
+  const svgHeight = 220;
+  const padX = 24;
+  const padY = 28;
+
+  // Compute points
+  const points = currentData.values.map((v, i) => {
+    const x = padX + (i / (currentData.values.length - 1)) * (svgWidth - 2 * padX);
+    const y = svgHeight - padY - ((v - minVal) / (maxVal - minVal)) * (svgHeight - 2 * padY);
+    return { x, y, val: v, label: currentData.labels[i] };
+  });
+
+  // Construct smooth bezier SVG curve
+  const curvePath = points.reduce((acc, pt, i, arr) => {
+    if (i === 0) return `M ${pt.x} ${pt.y}`;
+    const prev = arr[i - 1];
+    const cpX1 = prev.x + (pt.x - prev.x) / 2;
+    const cpY1 = prev.y;
+    const cpX2 = prev.x + (pt.x - prev.x) / 2;
+    const cpY2 = pt.y;
+    return `${acc} C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${pt.x} ${pt.y}`;
+  }, '');
+
+  const areaPath = `${curvePath} L ${points[points.length - 1].x} ${svgHeight} L ${points[0].x} ${svgHeight} Z`;
+
+  return (
+    <div className="rounded-3xl bg-[#121412] border border-stone-800 p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden shadow-lg h-full">
+      
+      {/* Top Header: Codebase Security Index Title + Filter Pills */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-2">
+        <div>
+          <span className="text-xs font-sans text-stone-400 block tracking-wide">
+            Codebase Security Index
+          </span>
+          <div className="flex items-baseline space-x-3 mt-1.5">
+            <span className="text-3xl sm:text-4xl font-sans font-extrabold text-stone-100 tracking-tight">
+              98.4%
+            </span>
+            <span className="text-sm font-sans font-medium bg-gradient-to-r from-emerald-500 via-lime-400 to-stone-300 bg-clip-text text-transparent">
+              Trust Rating
+            </span>
+            <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-[#161a15] text-lime-400 text-xs font-sans font-semibold border border-lime-800/40">
+              <span>{currentData.percent}</span>
+            </span>
+          </div>
+          <span className="text-[11px] text-stone-500 font-mono mt-1 block">
+            2,847 Packages Audited • Zero-Day Defense Verified
+          </span>
+        </div>
+
+        {/* Time Filter Pills matching the reference image */}
+        <div className="inline-flex items-center p-1 rounded-full bg-[#0e100f] border border-stone-800 self-start sm:self-auto">
+          {(['1 year', '6 month', '3-month', '1 month'] as TimeFilter[]).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => {
+                setFilter(tab);
+                setHoveredPoint(null);
+              }}
+              className={`px-3 py-1 rounded-full text-xs font-sans transition-all duration-200 capitalize ${
+                filter === tab
+                  ? 'bg-gradient-to-r from-lime-600 via-emerald-700 to-stone-800 text-stone-100 font-semibold border border-lime-500/30'
+                  : 'text-stone-400 hover:text-stone-200'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* SVG Wave Chart */}
+      <div className="relative w-full h-52 sm:h-56 mt-4">
+        <svg
+          viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+          className="w-full h-full overflow-visible"
+          preserveAspectRatio="none"
+        >
+          <defs>
+            <linearGradient id="warmGlowGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#84cc16" stopOpacity="0.25" />
+              <stop offset="60%" stopColor="#65a30d" stopOpacity="0.08" />
+              <stop offset="100%" stopColor="#3f6212" stopOpacity="0.0" />
+            </linearGradient>
+          </defs>
+
+          {/* Under Area Fill */}
+          <path d={areaPath} fill="url(#warmGlowGradient)" />
+
+          {/* Clean Crisp Bezier Stroke Line (Zero Glow) */}
+          <path
+            d={curvePath}
+            fill="none"
+            stroke="#84cc16"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
+
+          {/* Interactive Data Points */}
+          {points.map((pt, i) => {
+            const isHovered = hoveredPoint === i;
+            return (
+              <g
+                key={i}
+                onMouseEnter={() => setHoveredPoint(i)}
+                onMouseLeave={() => setHoveredPoint(null)}
+                className="cursor-pointer"
+              >
+                <circle
+                  cx={pt.x}
+                  cy={pt.y}
+                  r={isHovered ? 5.5 : 3.5}
+                  fill={isHovered ? '#fff' : '#84cc16'}
+                  stroke="#121412"
+                  strokeWidth="2"
+                  className="transition-all duration-150"
+                />
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* Hover Tooltip Overlay */}
+        {hoveredPoint !== null && (
+          <div
+            className="absolute -top-3 pointer-events-none rounded-xl bg-[#141614] border border-stone-800 px-3 py-1.5 text-xs shadow-xl z-20 font-sans transform -translate-x-1/2"
+            style={{
+              left: `${(points[hoveredPoint].x / svgWidth) * 100}%`,
+            }}
+          >
+            <span className="text-stone-400 text-[10px] block font-mono">
+              {points[hoveredPoint].label} 2026 Audit
+            </span>
+            <span className="text-stone-100 font-bold">
+              {points[hoveredPoint].val}% Security Rating
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Month Label Indicators along bottom */}
+      <div className="flex items-center justify-between px-2 pt-2 border-t border-stone-800 text-[11px] font-sans text-stone-500">
+        {points.map((pt, i) => (
+          <span
+            key={i}
+            className={`transition-colors ${hoveredPoint === i ? 'text-lime-400 font-semibold' : ''}`}
+          >
+            {pt.label}
+          </span>
+        ))}
+      </div>
+
+    </div>
+  );
+};
