@@ -12,10 +12,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       },
       body: JSON.stringify({ github_url: request.github_url })
     })
-      .then(response => {
+      .then(async (response) => {
         console.log("3. Got response from Python! Status:", response.status);
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          let errorMsg = `HTTP error! status: ${response.status}`;
+          try {
+            const errorJson = await response.json();
+            if (errorJson && errorJson.detail) {
+              errorMsg = typeof errorJson.detail === "string"
+                ? errorJson.detail
+                : JSON.stringify(errorJson.detail);
+            }
+          } catch (_) {
+            // Body was not JSON
+          }
+          throw new Error(errorMsg);
         }
         return response.json();
       })

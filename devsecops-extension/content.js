@@ -306,7 +306,7 @@
               <div class="traceroot-ai-header">
                 <span class="traceroot-ai-icon">🤖</span>
                 <span class="traceroot-ai-title">GEMINI AI THREAT SYNTHESIS</span>
-                ${topThreatPkg ? `<span class="traceroot-pkg-target">TARGET: ${escapeHtml(topThreatPkg.name || "Top Package")}</span>` : ""}
+                ${topThreatPkg ? `<span class="traceroot-pkg-target">TARGET: ${escapeHtml(topThreatPkg.package || topThreatPkg.name || "Top Package")}</span>` : ""}
               </div>
               <div class="traceroot-ai-content">
                 <p>${escapeHtml(explanation)}</p>
@@ -331,7 +331,7 @@
                           return `
                             <div class="traceroot-dep-item">
                               <div class="traceroot-dep-left">
-                                <span class="traceroot-dep-name">${escapeHtml(dep.name || "dependency")}</span>
+                                <span class="traceroot-dep-name">${escapeHtml(dep.package || dep.name || "dependency")}</span>
                                 <div class="traceroot-flags">
                                   ${
                                     depFlags.length > 0
