@@ -1,33 +1,70 @@
 """
 Blockchain anchoring module for DevSecOps tool - Phase 3
 Anchors the Manifest JSON to an EVM-compatible blockchain (Polygon, Sepolia, etc.)
-using web3.py. Includes hackathon/fallback mode for development.
+using web3.py. Includes mock/fallback mode for development.
+
+Configuration via environment variables:
+- BLOCKCHAIN_RPC_URL: RPC endpoint URL (required for real anchoring)
+- BLOCKCHAIN_PRIVATE_KEY: Private key for signing (required for real anchoring)
+- BLOCKCHAIN_CHAIN_ID: Chain ID (default: 80002 for Polygon Amoy)
+
+If configuration is missing or invalid, the module operates in MOCK MODE:
+- Returns deterministic mock transaction hashes
+- Does not connect to any blockchain
+- Logs clear warnings about mock mode
+
+NEVER use mock mode in production. Mock hashes provide NO security guarantees.
 """
 
 import hashlib
 import json
+import logging
 import os
 from typing import Optional
 from web3 import Web3
 from web3.exceptions import Web3Exception
 
 
-# Configuration - use environment variables with dummy fallbacks for hackathon mode
-RPC_URL = os.getenv("BLOCKCHAIN_RPC_URL", "https://rpc-amoy.polygon.technology/")
-PRIVATE_KEY = os.getenv("BLOCKCHAIN_PRIVATE_KEY", "YOUR_PRIVATE_KEY")
+logger = logging.getLogger(__name__)
+
+
+class BlockchainConfigError(Exception):
+    """Raised when blockchain configuration is invalid for real anchoring."""
+    pass
+
+
+# Configuration - loaded from environment variables
+# No defaults for production-critical settings
+RPC_URL = os.getenv("BLOCKCHAIN_RPC_URL")
+PRIVATE_KEY = os.getenv("BLOCKCHAIN_PRIVATE_KEY")
 CHAIN_ID = int(os.getenv("BLOCKCHAIN_CHAIN_ID", "80002"))  # Polygon Amoy testnet
 
 
+def _is_mock_mode() -> tuple[bool, str]:
+    """
+    Determine if we're in mock mode and why.
+    
+    Returns:
+        Tuple of (is_mock, reason)
+    """
+    if not RPC_URL:
+        return True, "BLOCKCHAIN_RPC_URL not configured"
+    if not PRIVATE_KEY:
+        return True, "BLOCKCHAIN_PRIVATE_KEY not configured"
+    if PRIVATE_KEY == "YOUR_PRIVATE_KEY" or not PRIVATE_KEY.startswith("0x"):
+        return True, "BLOCKCHAIN_PRIVATE_KEY is dummy/invalid"
+    return False, ""
+
+
 def _generate_mock_tx_hash() -> str:
-    """Generate a deterministic mock transaction hash for hackathon/fallback mode."""
+    """Generate a deterministic mock transaction hash for mock mode."""
     return "mock_tx_0x987654321abcdef987654321abcdef987654321abcdef987654321abcdef"
 
 
 def _get_sender_address(private_key: str) -> str:
     """Derive sender address from private key."""
     if private_key == "YOUR_PRIVATE_KEY" or not private_key.startswith("0x"):
-        # Return a dummy address for mock mode
-        return "0x742d35Cc6634C0532925a3b8D91D0a74b8D5a712"
+        raise BlockchainConfigError("Invalid private key for address derivation")
     account = Web3().eth.account.from_key(private_key)
     return account.address
 
@@ -41,8 +78,18 @@ def anchor_manifest(manifest_data: list) -> str:
                        (output from the /api/scan endpoint)
     
     Returns:
-        Transaction hash as hex string (e.g., "0xabc123...") or mock hash in fallback mode.
+        Transaction hash as hex string (e.g., "0xabc123...").
+        Returns mock hash if in mock mode (clearly prefixed with "mock_tx_").
+    
+    Raises:
+        BlockchainConfigError: If real anchoring is requested but configuration is invalid.
     """
+    # Check mock mode at call time (allows dynamic config changes)
+    mock_mode, mock_reason = _is_mock_mode()
+    if mock_mode:
+        logger.warning(f"[Blockchain Anchor] MOCK MODE: {mock_reason}. Returning mock transaction hash.")
+        return _generate_mock_tx_hash()
+    
     # Step 1: Serialize manifest to canonical JSON string
     # sort_keys=True ensures deterministic ordering for consistent hashing
     manifest_json = json.dumps(manifest_data, sort_keys=True, separators=(",", ":"))
@@ -62,10 +109,6 @@ def anchor_manifest(manifest_data: list) -> str:
         
         # Derive sender address from private key
         sender_address = _get_sender_address(PRIVATE_KEY)
-        
-        # Check if we're in mock mode (dummy private key)
-        if PRIVATE_KEY == "YOUR_PRIVATE_KEY" or not PRIVATE_KEY.startswith("0x"):
-            raise Web3Exception("Dummy private key detected - using mock mode")
         
         # Step 4: Build the transaction
         # Get current nonce
@@ -102,17 +145,17 @@ def anchor_manifest(manifest_data: list) -> str:
         
         # Step 7: Return transaction hash as hex string
         tx_hash = w3.to_hex(tx_hash_bytes)
+        logger.info(f"[Blockchain Anchor] Successfully anchored to chain {CHAIN_ID}: {tx_hash}")
         return tx_hash
         
-    except (Web3Exception, ConnectionError, ValueError, KeyError) as e:
-        # Fallback/Hackathon mode: return mock transaction hash
-        # Log the error for debugging (in production, use proper logging)
-        print(f"[Blockchain Anchor] Fallback mode activated: {type(e).__name__}: {e}")
+    except (Web3Exception, ConnectionError, ValueError, KeyError, BlockchainConfigError) as e:
+        # Configuration or connection error - log clearly and fall back to mock
+        logger.error(f"[Blockchain Anchor] Anchoring failed: {type(e).__name__}: {e}. Falling back to MOCK MODE.")
         return _generate_mock_tx_hash()
     
     except Exception as e:
         # Catch-all for any unexpected errors
-        print(f"[Blockchain Anchor] Unexpected error, using mock: {type(e).__name__}: {e}")
+        logger.error(f"[Blockchain Anchor] Unexpected error: {type(e).__name__}: {e}. Falling back to MOCK MODE.")
         return _generate_mock_tx_hash()
 
 
@@ -130,14 +173,21 @@ def verify_anchor(manifest_data: list, tx_hash: str, rpc_url: Optional[str] = No
         True if the manifest hash matches the transaction data, False otherwise.
     """
     if tx_hash.startswith("mock_tx_"):
+        logger.warning("[Blockchain Verify] Mock transaction hash - cannot verify on-chain")
         # In mock mode, we can't verify on-chain, but we can verify the hash locally
         manifest_json = json.dumps(manifest_data, sort_keys=True, separators=(",", ":"))
         expected_hash = hashlib.sha256(manifest_json.encode("utf-8")).hexdigest()
         # Mock hashes don't contain the real hash, so return True for mock mode
         return True
     
+    # Use provided RPC URL or default
+    verify_rpc = rpc_url or RPC_URL
+    if not verify_rpc:
+        logger.warning("[Blockchain Verify] No RPC URL configured for verification")
+        return False
+    
     try:
-        w3 = Web3(Web3.HTTPProvider(rpc_url or RPC_URL, request_kwargs={"timeout": 30}))
+        w3 = Web3(Web3.HTTPProvider(verify_rpc, request_kwargs={"timeout": 30}))
         if not w3.is_connected():
             return False
         
@@ -154,12 +204,41 @@ def verify_anchor(manifest_data: list, tx_hash: str, rpc_url: Optional[str] = No
         
         return tx_data.lower() == expected_hash.lower()
         
-    except Exception:
+    except Exception as e:
+        logger.error(f"[Blockchain Verify] Verification failed: {type(e).__name__}: {e}")
         return False
+
+
+def get_blockchain_status() -> dict:
+    """
+    Get the current blockchain configuration status.
+    Useful for health checks and debugging.
+    
+    Returns:
+        Dict with configuration status and mock mode info.
+    """
+    mock_mode, mock_reason = _is_mock_mode()
+    return {
+        "configured": not mock_mode,
+        "mock_mode": mock_mode,
+        "mock_reason": mock_reason if mock_mode else None,
+        "rpc_url_configured": bool(RPC_URL),
+        "private_key_configured": bool(PRIVATE_KEY and PRIVATE_KEY != "YOUR_PRIVATE_KEY" and PRIVATE_KEY.startswith("0x")),
+        "chain_id": CHAIN_ID,
+    }
 
 
 if __name__ == "__main__":
     # Demo/test with sample manifest data
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    
+    print("=== Blockchain Configuration Status ===")
+    status = get_blockchain_status()
+    for k, v in status.items():
+        print(f"  {k}: {v}")
+    print()
+    
     sample_manifest = [
         {
             "package": "lodash",

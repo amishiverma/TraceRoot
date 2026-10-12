@@ -6,18 +6,33 @@ Converts raw risk scores and flags into professional security analysis.
 """
 
 import os
-import google.generativeai as genai
-from typing import List
+import logging
+from typing import Any, List
 
-# Configure Gemini API using the .env key loaded by main.py
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+from google import genai
+from google.genai import types
+
+logger = logging.getLogger(__name__)
 
 # Model configuration
-MODEL_NAME = "gemini-1.5-flash" # Use "gemini-1.5-pro" for higher quality
+MODEL_NAME = "gemini-1.5-flash"  # Use "gemini-1.5-pro" for higher quality
 FALLBACK_MESSAGE = "High risk detected based on heuristics, but AI-generated detailed analysis is currently unavailable."
 NORMAL_MESSAGE = "Package behavior appears normal. No immediate threats detected."
+
+# Request timeout in seconds
+REQUEST_TIMEOUT = 30.0
+
+
+def _get_client() -> genai.Client | None:
+    """
+    Create and return a Gemini client if API key is configured.
+    Returns None if GEMINI_API_KEY is not set.
+    """
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return None
+    return genai.Client(api_key=api_key)
+
 
 def _build_prompt(pkg_name: str, risk_score: int, flags: List[str]) -> str:
     """Builds the professional prompt for the Gemini API."""
@@ -29,6 +44,7 @@ def _build_prompt(pkg_name: str, risk_score: int, flags: List[str]) -> str:
         f"Do not use emojis. Do not use introductory phrases. Just give the two sentences."
     )
 
+
 def generate_threat_explanation(pkg_name: str, risk_score: int, flags: List[str]) -> str:
     """
     The main function called by main.py to get a human-readable threat analysis.
@@ -39,23 +55,38 @@ def generate_threat_explanation(pkg_name: str, risk_score: int, flags: List[str]
 
     # 2. If risk is high, call Gemini AI
     try:
-        if not GEMINI_API_KEY:
+        client = _get_client()
+        if client is None:
+            logger.warning("GEMINI_API_KEY not configured, returning fallback message")
             return FALLBACK_MESSAGE
 
-        # Initialize the model
-        model = genai.GenerativeModel(MODEL_NAME)
-        
         # Create the prompt
         prompt = _build_prompt(pkg_name, risk_score, flags)
-        
-        # Generate the response
-        response = model.generate_content(prompt)
-        
+
+        # Generate the response with timeout and safety settings
+        config = types.GenerateContentConfig(
+            temperature=0.3,
+            max_output_tokens=200,
+            http_options=types.HttpOptions(timeout=REQUEST_TIMEOUT),
+        )
+
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+            config=config,
+        )
+
+        # Validate structured output
+        if response is None or not hasattr(response, "text") or not response.text:
+            logger.warning("Empty response from Gemini API")
+            return FALLBACK_MESSAGE
+
         return response.text.strip()
 
     except Exception as e:
-        print(f"❌ Gemini API Error: {e}")
+        logger.error(f"Gemini API Error: {type(e).__name__}: {e}")
         return FALLBACK_MESSAGE
+
 
 def generate_batch_explanations(
     packages: list[dict[str, Any]],

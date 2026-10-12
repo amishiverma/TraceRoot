@@ -19,6 +19,7 @@ from app.risk.assessment import (
     RiskAssessment,
     assess_package_risk,
     assess_all_packages,
+    get_ml_anomaly_score,
 )
 from app.graph.builder import build_graph_from_api_response
 
@@ -477,5 +478,119 @@ class TestDummyResponseIntegration:
             assert vuln_signal["status"] == "unknown", (
                 f"{node_id}: vulnerability signal incorrectly "
                 f"{vuln_signal['status']} on a version range"
-            )
+)
             assert assessment.assessment_complete is False
+
+
+class TestMLAnomalyScore:
+    """Tests for the ML anomaly score integration."""
+
+    def test_get_ml_anomaly_score_with_complete_features(self):
+        """ML returns a score when all 4 features are available."""
+        pkg_data = {
+            "package": "test-package",
+            "version": "^1.0.0",
+            "npm_metadata": {
+                "times": {
+                    "created": "2020-01-01T00:00:00.000Z",
+                    "1.0.0": "2021-01-01T00:00:00.000Z",
+                    "1.1.0": "2021-06-01T00:00:00.000Z",
+                    "1.2.0": "2022-01-01T00:00:00.000Z",
+                    "modified": "2023-01-01T00:00:00.000Z"
+                }
+            }
+        }
+        
+        ml_score, ml_status = get_ml_anomaly_score(pkg_data)
+        
+        # With sufficient release history, we should get an analyzed result
+        assert ml_status in ("analyzed", "inconclusive")
+        if ml_status == "analyzed":
+            assert ml_score is not None
+            assert 0 <= ml_score <= 100
+
+    def test_get_ml_anomaly_score_with_no_npm_times(self):
+        """ML returns inconclusive when npm_times is missing."""
+        pkg_data = {
+            "package": "test-package",
+            "version": "^1.0.0",
+            "npm_metadata": {}
+        }
+        
+        ml_score, ml_status = get_ml_anomaly_score(pkg_data)
+        
+        assert ml_score is None
+        assert ml_status == "inconclusive"
+
+    def test_get_ml_anomaly_score_with_insufficient_releases(self):
+        """ML returns inconclusive when <3 releases (missing release_gap_ratio).
+        
+        Note: The model still computes a score by imputing missing features with 0.0,
+        but marks status as 'inconclusive' since not all features are available.
+        """
+        pkg_data = {
+            "package": "test-package",
+            "version": "^1.0.0",
+            "npm_metadata": {
+                "times": {
+                    "created": "2020-01-01T00:00:00.000Z",
+                    "1.0.0": "2021-01-01T00:00:00.000Z",
+                    "modified": "2023-01-01T00:00:00.000Z"
+                }
+            }
+        }
+        
+        ml_score, ml_status = get_ml_anomaly_score(pkg_data)
+        
+        # Only 1 release = missing release_gap_ratio
+        # Model imputes missing features with 0.0 and returns a score,
+        # but marks status as 'inconclusive' since not all features available
+        assert ml_score is not None
+        assert ml_status == "inconclusive"
+        assert 0 <= ml_score <= 100
+
+    def test_get_ml_anomaly_score_with_version_range(self):
+        """ML works with version ranges when npm_times is available."""
+        pkg_data = {
+            "package": "test-package",
+            "version": "^2.0.0",  # Range version
+            "npm_metadata": {
+                "times": {
+                    "created": "2020-01-01T00:00:00.000Z",
+                    "1.0.0": "2021-01-01T00:00:00.000Z",
+                    "1.1.0": "2021-06-01T00:00:00.000Z",
+                    "2.0.0": "2022-01-01T00:00:00.000Z",
+                    "modified": "2023-01-01T00:00:00.000Z"
+                }
+            }
+        }
+        
+        ml_score, ml_status = get_ml_anomaly_score(pkg_data)
+        
+        assert ml_status == "analyzed"
+        assert ml_score is not None
+        assert 0 <= ml_score <= 100
+
+    def test_get_ml_anomaly_score_preserves_osv_findings(self):
+        """ML score is returned but doesn't override confirmed vulnerabilities."""
+        pkg_data = {
+            "package": "vulnerable-package",
+            "version": "^1.0.0",
+            "vulnerabilities": [{"id": "CVE-2023-1234"}],  # Confirmed vuln
+            "npm_metadata": {
+                "times": {
+                    "created": "2020-01-01T00:00:00.000Z",
+                    "1.0.0": "2021-01-01T00:00:00.000Z",
+                    "1.1.0": "2021-06-01T00:00:00.000Z",
+                    "1.2.0": "2022-01-01T00:00:00.000Z",
+                    "modified": "2023-01-01T00:00:00.000Z"
+                }
+            }
+        }
+        
+        ml_score, ml_status = get_ml_anomaly_score(pkg_data)
+        
+        # ML score should still be computed (separation of concerns)
+        # The risk assessment layer handles the override logic
+        if ml_status == "analyzed":
+            assert ml_score is not None

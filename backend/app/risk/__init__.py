@@ -15,7 +15,7 @@ from app.risk.assessment import (
     assess_all_risks,
     calculate_impact,
     calculate_heuristics,
-    predict_ml_risk,
+    get_ml_anomaly_score,
 )
 
 __all__ = [
@@ -29,5 +29,5 @@ __all__ = [
     "assess_all_risks",
     "calculate_impact",
     "calculate_heuristics",
-    "predict_ml_risk",
+    "get_ml_anomaly_score",
 ]

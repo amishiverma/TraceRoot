@@ -6,7 +6,7 @@ Provides both:
    - assess_all_risks(graph, manifest)
    - calculate_impact(graph, node_name)
    - calculate_heuristics(pkg_data)
-   - predict_ml_risk(pkg_data)
+   - get_ml_anomaly_score(pkg_data)
 
 2. Comprehensive heuristic risk evaluation classes/functions for unit & integration testing:
    - RiskAssessment
@@ -16,7 +16,6 @@ Provides both:
 
 from __future__ import annotations
 
-import random
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -29,6 +28,93 @@ from app.risk.heuristic_rules import (
     evaluate_dormancy_signal,
     evaluate_maintainer_change_signal,
 )
+
+# ML anomaly detector - loaded lazily to avoid import-time failures
+_ml_detector = None
+_ml_detector_error = None
+
+
+def _get_ml_detector():
+    """Lazily load the ML anomaly detector."""
+    global _ml_detector, _ml_detector_error
+    if _ml_detector is not None or _ml_detector_error is not None:
+        return _ml_detector
+    try:
+        from app.ml.anomaly_detector import get_default_model
+        _ml_detector = get_default_model()
+    except FileNotFoundError as e:
+        _ml_detector_error = f"ML model not found: {e}"
+        _ml_detector = None
+    except Exception as e:
+        _ml_detector_error = f"Failed to load ML model: {type(e).__name__}: {e}"
+        _ml_detector = None
+    return _ml_detector
+
+
+def get_ml_anomaly_score(pkg_data: dict[str, Any]) -> tuple[float | None, str | None]:
+    """
+    Get ML anomaly score for a package using the trained Isolation Forest model.
+    
+    Returns:
+        Tuple of (anomaly_score, status) where anomaly_score is 0-100 scaled,
+        and status is one of: "analyzed", "inconclusive", "unavailable", "error"
+        Returns (None, status) if model is unavailable or features missing.
+    """
+    detector = _get_ml_detector()
+    if detector is None:
+        return None, f"unavailable ({_ml_detector_error})"
+    
+    try:
+        from app.ml.feature_extraction import extract_features
+        
+        # Extract npm_times from the nested npm_metadata structure
+        npm_meta = pkg_data.get("npm_metadata") or {}
+        npm_times = npm_meta.get("times", {})
+        
+        # Prepare node_data in the format expected by extract_features
+        node_data = {
+            "name": pkg_data.get("package", ""),
+            "version": pkg_data.get("version", ""),
+            "version_precision": "range" if _is_version_range(pkg_data.get("version", "")) else "resolved",
+            "npm_times": npm_times,
+        }
+        
+        features = extract_features(node_data)
+        result = detector.predict(features)
+        
+        if result.anomaly_score is None:
+            return None, result.status
+        
+        # Scale anomaly score to 0-100 range (Isolation Forest scores are typically 0-1)
+        # The score from decision_function is inverted so higher = more anomalous
+        # We'll cap at 100 and use the raw score as-is (it's already 0-1 roughly)
+        scaled_score = min(result.anomaly_score * 100, 100.0)
+        return scaled_score, result.status
+    except Exception as e:
+        return None, f"error ({type(e).__name__}: {e})"
+
+
+def _is_version_range(version: str) -> bool:
+    """Check if version string appears to be a range rather than a resolved version."""
+    version = version.strip()
+    
+    if version in ("*", "latest"):
+        return True
+    
+    if any(op in version for op in ["||", ">=", "<=", ">", "<", "="]):
+        return True
+    
+    if version.startswith(("^", "~")):
+        return True
+    
+    parts = version.split(".")
+    if any(part.lower() in ("x", "X", "*") for part in parts):
+        return True
+    
+    if " - " in version:
+        return True
+    
+    return False
 
 
 # ===========================================================================
@@ -74,23 +160,59 @@ def calculate_heuristics(pkg_data: dict[str, Any]) -> tuple[int, list[str]]:
     return min(score, 100), flags
 
 
-def predict_ml_risk(pkg_data: dict[str, Any]) -> int:
-    """Predict risk using ML model (stub / random baseline)."""
-    return random.randint(10, 40)
-
-
 def assess_all_risks(graph: nx.DiGraph, manifest: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Score risks across all packages in the manifest using ensemble formula.
     Injected directly into each package dict for API response and blockchain anchoring.
+    
+    Formula: final_score = 0.50 * heuristics + 0.30 * impact + 0.20 * ml_anomaly
+    ML anomalies supplement but never override confirmed OSV vulnerabilities.
     """
+    # Pre-extract ML anomaly scores for all packages to avoid repeated model loading
+    ml_scores = {}
     for pkg in manifest:
-        impact = calculate_impact(graph, pkg.get("package"))
+        pkg_name = pkg.get("package", "")
+        ml_score, ml_status = get_ml_anomaly_score(pkg)
+        ml_scores[pkg_name] = (ml_score, ml_status)
+    
+    for pkg in manifest:
+        pkg_name = pkg.get("package", "")
+        impact = calculate_impact(graph, pkg_name)
         heuristics, flags = calculate_heuristics(pkg)
-        ml_score = predict_ml_risk(pkg)
-        final_score = int((0.50 * heuristics) + (0.30 * impact) + (0.20 * ml_score))
+        
+        ml_score, ml_status = ml_scores.get(pkg_name, (None, "unavailable"))
+        
+        # ML anomalies supplement but never override confirmed OSV vulnerabilities
+        has_confirmed_vuln = bool(pkg.get("vulnerabilities"))
+        
+        # Calculate final score
+        # If ML is unavailable, use only heuristics and impact (weights: 0.50 + 0.30 = 0.80)
+        # Scale to 100: final = (0.50*h + 0.30*i) / 0.80
+        if ml_score is not None:
+            final_score = int((0.50 * heuristics) + (0.30 * impact) + (0.20 * ml_score))
+        else:
+            # Re-weight heuristics and impact when ML is unavailable
+            if (heuristics + impact) > 0:
+                final_score = int(((0.50 * heuristics) + (0.30 * impact)) / 0.80)
+            else:
+                final_score = 0
+        
         pkg["final_risk_score"] = min(final_score, 100)
         pkg["risk_flags"] = flags
+        
+        # Add ML anomaly info to response for transparency
+        if ml_score is not None:
+            pkg["ml_anomaly_score"] = round(ml_score, 2)
+            pkg["ml_anomaly_status"] = ml_status
+        else:
+            pkg["ml_anomaly_score"] = None
+            pkg["ml_anomaly_status"] = ml_status
+            
+        # Note: ML never overrides confirmed OSV findings
+        if has_confirmed_vuln and ml_score is not None and ml_score < 30:
+            if "ml_anomaly_note" not in pkg:
+                pkg["ml_anomaly_note"] = "ML anomaly score does not override confirmed OSV vulnerability"
+    
     return manifest
 
 

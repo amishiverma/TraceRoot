@@ -85,7 +85,22 @@ export interface ScanHistoryEntry {
 // API SERVICE
 // ============================================================================
 
-const API_BASE = '/api';
+// Get API base URL from environment variable, with fallback for development
+// Vite exposes env vars prefixed with VITE_ via import.meta.env
+const getApiBase = (): string => {
+  // In production, VITE_API_BASE_URL should be set to the full backend URL
+  // e.g., https://api.trace-root.com/api
+  // In development, it defaults to /api which works with Vite proxy
+  const base = import.meta.env.VITE_API_BASE_URL;
+  if (base) {
+    // Ensure no trailing slash for consistent URL building
+    return base.replace(/\/$/, '');
+  }
+  // Development fallback - works with Vite proxy config
+  return '/api';
+};
+
+const API_BASE = getApiBase();
 
 export async function scanRepository(repoUrl: string): Promise<BackendScanResponse> {
   const response = await fetch(`${API_BASE}/scan`, {

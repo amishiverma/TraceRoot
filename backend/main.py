@@ -4,6 +4,7 @@ Scans GitHub repositories for package.json dependencies and enriches with threat
 """
 from dotenv import load_dotenv
 load_dotenv()  # This loads the variables from .env into your system environment
+import os
 import re
 import asyncio
 import logging
@@ -26,6 +27,51 @@ from app.security import (
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# --- Environment Configuration & Validation ---
+def get_cors_allowed_origins() -> list[str]:
+    """
+    Parse CORS_ALLOWED_ORIGINS from environment.
+    Format: comma-separated list of origins.
+    Defaults to localhost for development only.
+    """
+    cors_env = os.getenv("CORS_ALLOWED_ORIGINS", "")
+    if cors_env:
+        origins = [o.strip() for o in cors_env.split(",") if o.strip()]
+        # Validate each origin is a proper URL
+        for origin in origins:
+            if not (origin.startswith("http://") or origin.startswith("https://")):
+                raise ValueError(f"Invalid CORS origin (must start with http:// or https://): {origin}")
+        return origins
+    
+    # Development default - only localhost
+    logger.warning("CORS_ALLOWED_ORIGINS not set, defaulting to localhost for development")
+    return [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+    ]
+
+
+def validate_required_env() -> None:
+    """Validate required environment variables at startup."""
+    # Check for required production config
+    cors_origins = get_cors_allowed_origins()
+    if "*" in cors_origins:
+        raise ValueError("Wildcard CORS origin (*) is not allowed in production")
+    
+    # Log configuration (without secrets)
+    logger.info(f"CORS allowed origins: {cors_origins}")
+    logger.info(f"GEMINI_API_KEY configured: {bool(os.getenv('GEMINI_API_KEY'))}")
+    logger.info(f"BLOCKCHAIN_RPC_URL configured: {bool(os.getenv('BLOCKCHAIN_RPC_URL'))}")
+    logger.info(f"BLOCKCHAIN_PRIVATE_KEY configured: {bool(os.getenv('BLOCKCHAIN_PRIVATE_KEY'))}")
+
+
+# Validate environment at module load
+validate_required_env()
+
+CORS_ALLOWED_ORIGINS = get_cors_allowed_origins()
 
 
 class ScanRequest(BaseModel):
@@ -60,6 +106,8 @@ class NPMMetadata(BaseModel):
     """Model for NPM registry metadata."""
     maintainers: list[NPMMaintainer] = []
     times: dict[str, str] = {}
+    # Resolved versions from package-lock.json if available
+    resolved: dict[str, str] = {}
 
 
 class OSVVulnerability(BaseModel):
@@ -76,7 +124,9 @@ class OSVVulnerability(BaseModel):
 
 class ManifestEntry(BaseModel):
     package: str
-    version: str
+    version: str  # requested version from package.json (may be range)
+    requested_version: str = ""  # explicitly track requested version
+    resolved_version: str = ""   # resolved version from lockfile if available
     parent: str = "root"
     vulnerabilities: Any
     npm_metadata: Any
@@ -87,10 +137,10 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# Configure CORS - restrict in production
+# Configure CORS with explicit allowed origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: Restrict to specific origins in production
+    allow_origins=CORS_ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -98,7 +148,7 @@ app.add_middleware(
 
 # Configure request limits and rate limiting
 limits = RequestLimits(
-    allowed_origins=["*"]  # TODO: Configure for production
+    allowed_origins=CORS_ALLOWED_ORIGINS
 )
 configure_request_limits(app, limits)
 
@@ -323,10 +373,30 @@ async def enrich_package(client: httpx.AsyncClient, pkg: PackageInfo) -> Manifes
     
     vulnerabilities, npm_metadata = await asyncio.gather(osv_task, npm_task)
     
+    # Determine requested vs resolved version
+    requested_version = pkg.version
+    resolved_version = ""
+    
+    # Check if version is a range (e.g., ^2.0.0, ~1.0.0, >=1.0.0)
+    # If it's a range and we have npm metadata with resolved versions, try to resolve
+    from app.graph.builder import _is_version_range
+    if _is_version_range(requested_version):
+        # Try to get resolved version from npm metadata (package-lock.json data if available)
+        resolved_dict = getattr(npm_metadata, 'resolved', {}) or {}
+        if pkg.package in resolved_dict:
+            resolved_version = resolved_dict[pkg.package]
+        # If not in resolved dict, we can't resolve without package-lock.json
+        # The requested_version will be used as-is (range)
+    else:
+        # Already a resolved version
+        resolved_version = requested_version
+    
     return ManifestEntry(
         package=pkg.package,
-        version=pkg.version,
-        parent=pkg.parent,      # <--- Add this line!
+        version=requested_version,  # original version from package.json
+        requested_version=requested_version,
+        resolved_version=resolved_version,
+        parent=pkg.parent,
         vulnerabilities=vulnerabilities,
         npm_metadata=npm_metadata
     )
