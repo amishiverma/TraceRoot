@@ -3,9 +3,10 @@ FastAPI backend for DevSecOps tool - Phase 2
 Scans GitHub repositories for package.json dependencies and enriches with threat intelligence.
 """
 from dotenv import load_dotenv
-load_dotenv() # This loads the variables from .env into your system environment
+load_dotenv()  # This loads the variables from .env into your system environment
 import re
 import asyncio
+import logging
 from typing import Any, Optional
 import httpx
 from fastapi import FastAPI, HTTPException, status
@@ -15,6 +16,16 @@ from blockchain import anchor_manifest
 from fastapi.encoders import jsonable_encoder
 from app.graph.builder import build_dependency_graph
 from app.risk.assessment import assess_all_risks
+from app.security import (
+    validate_github_repository_url,
+    ValidationError,
+    RequestLimits,
+    configure_request_limits,
+)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class ScanRequest(BaseModel):
@@ -24,17 +35,18 @@ class ScanRequest(BaseModel):
     @field_validator("github_url")
     @classmethod
     def validate_github_url(cls, v: str) -> str:
-        """Validate that the URL is a GitHub repository URL."""
-        github_pattern = r"^https?://github\.com/[\w\-]+/[\w\-\.]+/?$"
-        if not re.match(github_pattern, v.rstrip("/")):
-            raise ValueError("Invalid GitHub repository URL format. Expected: https://github.com/owner/repo")
-        return v.rstrip("/")
+        """Validate that the URL is a GitHub repository URL using security module."""
+        try:
+            validated = validate_github_repository_url(v)
+            return validated.normalized_url
+        except ValidationError as e:
+            raise ValueError(str(e))
 
 
 class PackageInfo(BaseModel):
     package: str
     version: str
-    parent: str = "root"  # <--- Add this exact line!
+    parent: str = "root"
 
 
 class NPMMaintainer(BaseModel):
@@ -66,8 +78,8 @@ class ManifestEntry(BaseModel):
     package: str
     version: str
     parent: str = "root"
-    vulnerabilities: Any   # <--- Changed to Any
-    npm_metadata: Any      # <--- Changed to Any
+    vulnerabilities: Any
+    npm_metadata: Any
 
 app = FastAPI(
     title="DevSecOps Scanner API",
@@ -75,24 +87,30 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# Configure CORS for local hackathon - allow all origins
+# Configure CORS - restrict in production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # TODO: Restrict to specific origins in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Configure request limits and rate limiting
+limits = RequestLimits(
+    allowed_origins=["*"]  # TODO: Configure for production
+)
+configure_request_limits(app, limits)
+
 
 def convert_to_raw_package_url(github_url: str, branch: str = "main") -> str:
     """
     Convert a GitHub repository URL to a raw package.json URL.
-    
+
     Args:
         github_url: Standard GitHub repo URL (e.g., https://github.com/facebook/react)
         branch: Branch name (default: main)
-    
+
     Returns:
         Raw GitHub content URL for package.json
     """
@@ -102,36 +120,36 @@ def convert_to_raw_package_url(github_url: str, branch: str = "main") -> str:
     match = re.match(r"https?://github\.com/([\w\-]+)/([\w\-\.]+)", url)
     if not match:
         raise ValueError("Invalid GitHub URL format")
-    
+
     owner, repo = match.groups()
     # Remove .git suffix if present
     repo = repo.replace(".git", "")
-    
+
     return f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/package.json"
 
 
 def fetch_package_json(github_url: str) -> dict:
     """
     Fetch package.json from GitHub, trying 'main' branch first, then 'master'.
-    
+
     Args:
-        github_url: GitHub repository URL
-    
+        github_url: GitHub repository URL (must be validated)
+
     Returns:
         Parsed package.json as dictionary
-    
+
     Raises:
         HTTPException: If package.json not found or other errors
     """
     import requests
     branches = ["main", "master"]
     last_error = None
-    
+
     for branch in branches:
         raw_url = convert_to_raw_package_url(github_url, branch)
         try:
             response = requests.get(raw_url, timeout=10)
-            
+
             if response.status_code == 200:
                 return response.json()
             elif response.status_code == 404:
@@ -140,7 +158,7 @@ def fetch_package_json(github_url: str) -> dict:
             else:
                 last_error = f"GitHub returned status {response.status_code} for branch '{branch}'"
                 continue
-                
+
         except requests.exceptions.Timeout:
             last_error = f"Request timeout for branch '{branch}'"
             continue
@@ -151,7 +169,7 @@ def fetch_package_json(github_url: str) -> dict:
             # JSON decode error
             last_error = f"Invalid JSON response for branch '{branch}': {str(e)}"
             continue
-    
+
     # If we get here, both branches failed
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
@@ -206,7 +224,7 @@ async def fetch_osv_vulnerabilities(client: httpx.AsyncClient, package_name: str
     }
     
     try:
-        response = await client.post(url, json=payload, timeout=15.0)
+        response = await client.post(url, json=payload, timeout=limits.osv_api_timeout)
         
         if response.status_code == 200:
             data = response.json()
@@ -252,7 +270,7 @@ async def fetch_npm_metadata(client: httpx.AsyncClient, package_name: str) -> NP
     url = f"https://registry.npmjs.org/{package_name}"
     
     try:
-        response = await client.get(url, timeout=15.0)
+        response = await client.get(url, timeout=limits.npm_api_timeout)
         
         if response.status_code == 200:
             data = response.json()
@@ -340,7 +358,10 @@ async def scan_repository(request: ScanRequest):
         
         # Enrich all packages concurrently using httpx.AsyncClient
         async with httpx.AsyncClient(
-            timeout=httpx.Timeout(30.0, connect=10.0),
+            timeout=httpx.Timeout(
+                limits.github_api_timeout,
+                connect=limits.osv_api_timeout
+            ),
             limits=httpx.Limits(max_connections=10, max_keepalive_connections=5)
         ) as client:
             # Create enrichment tasks for all packages
