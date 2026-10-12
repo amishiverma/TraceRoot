@@ -2,7 +2,10 @@
 Graph analysis package for DevSecOps scanner.
 """
 
-from app.graph.builder import build_dependency_graph
+from app.graph.builder import (
+    build_dependency_graph,
+    build_graph_from_api_response,
+)
 from app.graph.metrics import (
     calculate_graph_metrics,
     calculate_package_metrics,
@@ -25,6 +28,7 @@ from app.graph.impact_analysis import (
 
 __all__ = [
     "build_dependency_graph",
+    "build_graph_from_api_response",
     "calculate_graph_metrics",
     "calculate_package_metrics",
     "GraphMetrics",

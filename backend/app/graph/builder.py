@@ -79,6 +79,16 @@ def _make_node_id(package: str, version: str) -> str:
     return f"{package}@{version}"
 
 
+def _extract_advisory_ids(vulnerabilities: list[dict[str, Any]]) -> list[str]:
+    """Extract advisory IDs from vulnerability list."""
+    return [v.get("id", "") for v in vulnerabilities if v.get("id")]
+
+
+def _determine_version_precision(version: str) -> str:
+    """Determine if version is a range or resolved."""
+    return "range" if _is_version_range(version) else "resolved"
+
+
 def build_dependency_graph(manifest: list[dict[str, Any]]) -> nx.DiGraph:
     """
     Build a directed dependency graph from a manifest or dependency list.
@@ -233,5 +243,116 @@ def build_dependency_graph(manifest: list[dict[str, Any]]) -> nx.DiGraph:
                         graph.nodes[dep_node_id]["incomplete"] = False
 
                 graph.add_edge(node_id, dep_node_id)
+
+    return graph
+
+
+def build_graph_from_api_response(response: dict[str, Any]) -> nx.DiGraph:
+    """
+    Build a graph from the API response format (flat package list with metadata).
+
+    This function adapts the actual backend API response which contains:
+    - transaction_hash: scan identifier
+    - dependencies: flat list of packages with vulnerabilities and npm_metadata
+    
+    IMPORTANT: The API response does NOT contain explicit dependency edges.
+    This function creates nodes only, with empty edge list, and marks the
+    graph as incomplete. Real dependency edges will be added once Tanishq
+    provides normalized package-lock.json data.
+
+    Args:
+        response: API response dict with 'transaction_hash' and 'dependencies' keys
+
+    Returns:
+        nx.DiGraph: Graph with package nodes, no edges, rich metadata preserved
+
+    Raises:
+        ValueError: If response structure is invalid
+    """
+    if not isinstance(response, dict):
+        raise ValueError("API response must be a dictionary")
+
+    if "dependencies" not in response:
+        raise ValueError("API response missing required 'dependencies' field")
+
+    dependencies = response["dependencies"]
+    if not isinstance(dependencies, list):
+        raise ValueError("'dependencies' must be a list")
+
+    transaction_hash = response.get("transaction_hash", "")
+
+    graph = nx.DiGraph()
+    
+    # Store transaction hash and completeness flag as graph attributes
+    graph.graph["transaction_hash"] = transaction_hash
+    graph.graph["graph_complete"] = False  # No dependency edges yet
+    graph.graph["source"] = "api_response"
+
+    if not dependencies:
+        return graph
+
+    for idx, pkg in enumerate(dependencies):
+        if not isinstance(pkg, dict):
+            raise ValueError(f"Dependency at index {idx} must be a dictionary")
+
+        # API uses "package" field, not "name"
+        if "package" not in pkg:
+            raise ValueError(f"Dependency at index {idx} missing required field 'package'")
+
+        if "version" not in pkg:
+            raise ValueError(f"Dependency at index {idx} missing required field 'version'")
+
+        name = pkg["package"].strip()
+        version = pkg["version"].strip()
+
+        if not name:
+            raise ValueError(f"Dependency at index {idx}: 'package' cannot be empty")
+
+        if not version:
+            raise ValueError(f"Dependency at index {idx}: 'version' cannot be empty")
+
+        # Determine version precision
+        version_precision = _determine_version_precision(version)
+
+        # Extract vulnerabilities and advisory IDs
+        vulnerabilities = pkg.get("vulnerabilities", [])
+        if not isinstance(vulnerabilities, list):
+            vulnerabilities = []
+        advisory_ids = _extract_advisory_ids(vulnerabilities)
+        vulnerability_count = len(vulnerabilities)
+
+        # Extract npm metadata
+        npm_metadata = pkg.get("npm_metadata", {})
+        if not isinstance(npm_metadata, dict):
+            npm_metadata = {}
+        maintainers = npm_metadata.get("maintainers", [])
+        times = npm_metadata.get("times", {})
+
+        node_id = _make_node_id(name, version)
+
+        if not graph.has_node(node_id):
+            graph.add_node(
+                node_id,
+                name=name,
+                version=version,
+                version_precision=version_precision,
+                vulnerability_count=vulnerability_count,
+                vulnerability_advisory_ids=advisory_ids,
+                npm_maintainers=maintainers,
+                npm_times=times,
+                incomplete=True,  # No dependency edges yet
+            )
+        else:
+            # Node already exists (duplicate in response) - merge metadata
+            existing = graph.nodes[node_id]
+            if existing.get("name") != name or existing.get("version") != version:
+                raise ValueError(f"Node ID collision: {node_id} has conflicting metadata")
+            # Update vulnerability info if new data has more
+            if vulnerability_count > existing.get("vulnerability_count", 0):
+                existing["vulnerability_count"] = vulnerability_count
+                existing["vulnerability_advisory_ids"] = advisory_ids
+            # Update npm metadata
+            existing["npm_maintainers"] = maintainers
+            existing["npm_times"] = times
 
     return graph
