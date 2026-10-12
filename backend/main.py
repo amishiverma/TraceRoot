@@ -12,6 +12,7 @@ from typing import Any, Optional
 import httpx
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel, HttpUrl, field_validator
 from blockchain import anchor_manifest
 from fastapi.encoders import jsonable_encoder
@@ -72,6 +73,33 @@ def validate_required_env() -> None:
 validate_required_env()
 
 CORS_ALLOWED_ORIGINS = get_cors_allowed_origins()
+
+
+# Dynamic CORS middleware to support chrome-extension:// origins
+class ExtensionCORSMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        origin = request.headers.get("origin", "")
+        # Allow any chrome-extension:// origin
+        if origin.startswith("chrome-extension://"):
+            response = await call_next(request)
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+            return response
+        
+        # For web origins, use standard CORS validation
+        cors_origins = get_cors_allowed_origins()
+        if origin and origin in cors_origins:
+            response = await call_next(request)
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+            return response
+        
+        # No matching origin - still process but don't add CORS headers
+        return await call_next(request)
 
 
 class ScanRequest(BaseModel):
@@ -137,14 +165,8 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# Configure CORS with explicit allowed origins
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=CORS_ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Dynamic CORS middleware to support chrome-extension:// origins
+app.add_middleware(ExtensionCORSMiddleware)
 
 # Configure request limits and rate limiting
 limits = RequestLimits(

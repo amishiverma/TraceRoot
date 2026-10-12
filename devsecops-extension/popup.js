@@ -281,12 +281,31 @@ document.addEventListener("DOMContentLoaded", () => {
       "Gemini AI threat synthesis passed: No high-risk vulnerability vectors or anomalous patterns detected in dependency tree.";
 
     aiThreatExplanationText.textContent = threatExplanation;
-    const targetPkgName = highestRiskPackage?.package || highestRiskPackage?.name;
-    if (highestRiskPackage && targetPkgName) {
-      aiTargetPkg.textContent = `TARGET: ${targetPkgName}`;
+    
+    // Fix: Check for actual package property, not just truthiness
+    if (highestRiskPackage && highestRiskPackage.package) {
+      aiTargetPkg.textContent = `TARGET: ${highestRiskPackage.package}`;
       aiTargetPkg.style.display = "inline-block";
     } else {
       aiTargetPkg.style.display = "none";
+    }
+
+    // 4b. Display ML Anomaly info in risk banner
+    const mlScore = highestRiskPackage?.ml_anomaly_score;
+    const mlStatus = highestRiskPackage?.ml_anomaly_status;
+    const mlNote = highestRiskPackage?.ml_anomaly_note;
+    
+    // Remove any existing ML badge
+    const existingMlBadge = riskBannerCard.querySelector(".ml-badge");
+    if (existingMlBadge) existingMlBadge.remove();
+    
+    if (mlScore !== null && mlScore !== undefined) {
+      const mlBadge = document.createElement("span");
+      mlBadge.className = "ml-badge";
+      mlBadge.style.cssText = "font-size: 11px; padding: 2px 6px; border-radius: 4px; background: var(--neon-purple); color: white; margin-left: 8px;";
+      mlBadge.textContent = `ML: ${mlScore.toFixed(1)} (${mlStatus})`;
+      if (mlNote) mlBadge.title = mlNote;
+      riskBannerCard.appendChild(mlBadge);
     }
 
     // 5. Render Dependencies List
@@ -312,14 +331,29 @@ document.addEventListener("DOMContentLoaded", () => {
           ? depFlags.map((flag) => `<span class="flag-pill">${escapeHtml(flag)}</span>`).join("")
           : `<span class="flag-clean">PASSED</span>`;
 
+        // Display version info: requested (range) and resolved if available
+        const requestedVer = dep.requested_version || dep.version || "";
+        const resolvedVer = dep.resolved_version;
+        const versionHtml = resolvedVer && resolvedVer !== requestedVer
+          ? `<span style="opacity: 0.5; font-size: 11px; margin-left: 4px;">(${escapeHtml(requestedVer)} → ${escapeHtml(resolvedVer)})</span>`
+          : `<span style="opacity: 0.5; font-size: 12px;">v${escapeHtml(requestedVer || "")}</span>`;
+
+        // ML anomaly badge for each dep
+        const mlBadge = dep.ml_anomaly_score !== null && dep.ml_anomaly_score !== undefined
+          ? `<span class="ml-badge" style="font-size: 10px; padding: 1px 4px; border-radius: 3px; background: var(--neon-purple); color: white; margin-left: 4px;" title="${dep.ml_anomaly_note || ''}">ML: ${dep.ml_anomaly_score.toFixed(1)}</span>`
+          : "";
+
         row.innerHTML = `
           <div class="dep-info">
-            <span class="dep-name">${escapeHtml(dep.package)} <span style="opacity: 0.5; font-size: 12px;">v${escapeHtml(dep.version || "")}</span></span>
+            <span class="dep-name">${escapeHtml(dep.package)} ${versionHtml}</span>
             <div class="dep-flags">${flagsHtml}</div>
           </div>
-          <span class="dep-score-badge" style="color: ${depColor}; border-color: ${depColor};">
-            ${depScore}
-          </span>
+          <div style="display: flex; align-items: center; gap: 4px;">
+            ${mlBadge}
+            <span class="dep-score-badge" style="color: ${depColor}; border-color: ${depColor};">
+              ${depScore}
+            </span>
+          </div>
         `;
         depsListContainer.appendChild(row);
       });
