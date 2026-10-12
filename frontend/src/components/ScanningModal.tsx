@@ -236,7 +236,7 @@ export const ScanningModal: React.FC<ScanningModalProps> = ({ repoUrl, onComplet
                   ? 'text-lime-300'
                   : 'text-stone-300'}`}
               >
-                <span className="text-stone-600 select-none">></span>
+                <span className="text-stone-600 select-none">&gt;</span>
                 <span>{log}</span>
               </div>
             ))}
