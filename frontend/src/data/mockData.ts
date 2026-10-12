@@ -15,7 +15,7 @@ export const initialNodes: DependencyNode[] = [
     status: 'safe',
     polygonHash: '0x7e8b91c...3f21',
     threatSummary: 'Clean verified release. Signed by 3 hardware security modules.',
-    aiExplanation: 'Param\'s AI Analysis: Verified clean. Package signed with developer GPG keys, provenance matches git commit history, and zero anomalous binary payloads detected in tarball.',
+    aiExplanation: 'Sentinel AI Analysis: Verified clean. Package signed with developer GPG keys, provenance matches git commit history, and zero anomalous binary payloads detected in tarball.',
   },
   {
     id: 'pkg-event-stream',
@@ -31,7 +31,7 @@ export const initialNodes: DependencyNode[] = [
     status: 'critical',
     polygonHash: '0x8f4d92a...e79b',
     threatSummary: 'Unverified maintainer transfer with obfuscated crypto wallet stealer in postinstall hook.',
-    aiExplanation: 'Param\'s AI Threat Explainer: Sudden ownership shift detected 18 hours ago. Account was inactive for 3 years before pushing a release containing high-entropy Base64 bytecode injected into test/data.json. Heuristics flag automated exfiltration matching known zero-day supply chain vector.',
+    aiExplanation: 'Sentinel AI Threat Explainer: Sudden ownership shift detected 18 hours ago. Account was inactive for 3 years before pushing a release containing high-entropy Base64 bytecode injected into test/data.json. Heuristics flag automated exfiltration matching known zero-day supply chain vector.',
   },
   {
     id: 'pkg-xz-native',
@@ -47,7 +47,7 @@ export const initialNodes: DependencyNode[] = [
     status: 'critical',
     polygonHash: '0x992b17a...b442',
     threatSummary: 'M4 macro obfuscation tampering with systemd SSH authentication hooks.',
-    aiExplanation: 'Param\'s AI Threat Explainer: Complex multi-stage payload detected inside test fixtures. Build script modifies IFUNC symbol resolution during compilation to bypass RSA key verification. Zero-day heuristic pattern matches coordinated state-sponsored backdoor.',
+    aiExplanation: 'Sentinel AI Threat Explainer: Complex multi-stage payload detected inside test fixtures. Build script modifies IFUNC symbol resolution during compilation to bypass RSA key verification. Zero-day heuristic pattern matches coordinated state-sponsored backdoor.',
   },
   {
     id: 'pkg-colors-ext',
@@ -63,7 +63,7 @@ export const initialNodes: DependencyNode[] = [
     status: 'warning',
     polygonHash: '0x321a44e...c901',
     threatSummary: 'Dormant infinite loop trigger discovered in string padding utility.',
-    aiExplanation: 'Param\'s AI Threat Explainer: Code introduces deliberate CPU exhaustion condition triggered by specific terminal escape characters. High likelihood of maintainer protest denial-of-service vector.',
+    aiExplanation: 'Sentinel AI Threat Explainer: Code introduces deliberate CPU exhaustion condition triggered by specific terminal escape characters. High likelihood of maintainer protest denial-of-service vector.',
   },
   {
     id: 'pkg-crypto-utils',
@@ -79,7 +79,7 @@ export const initialNodes: DependencyNode[] = [
     status: 'warning',
     polygonHash: '0x55bc812...aa19',
     threatSummary: 'Timing attack vulnerability in scalar multiplication routine.',
-    aiExplanation: 'Param\'s AI Threat Explainer: Side-channel latency variance detected. While no active exploit payload is present, cryptographic signatures can leak private keys under high-frequency timing analysis.',
+    aiExplanation: 'Sentinel AI Threat Explainer: Side-channel latency variance detected. While no active exploit payload is present, cryptographic signatures can leak private keys under high-frequency timing analysis.',
   },
   {
     id: 'pkg-react-dom',
@@ -95,7 +95,7 @@ export const initialNodes: DependencyNode[] = [
     status: 'safe',
     polygonHash: '0x12a97cd...ef44',
     threatSummary: 'Verified vendor release. Clean AST analysis.',
-    aiExplanation: 'Param\'s AI Analysis: Full provenance verification successful. SLSA Level 3 build provenance verified against GitHub Actions OIDC tokens.',
+    aiExplanation: 'Sentinel AI Analysis: Full provenance verification successful. SLSA Level 3 build provenance verified against GitHub Actions OIDC tokens.',
   },
   {
     id: 'pkg-zod-schema',
@@ -111,7 +111,7 @@ export const initialNodes: DependencyNode[] = [
     status: 'safe',
     polygonHash: '0x66f123d...881a',
     threatSummary: 'Zero vulnerabilities found. Static analysis passed with 100% confidence.',
-    aiExplanation: 'Param\'s AI Analysis: Type-safety verified. Zero dynamic eval statements or external network calls discovered during AST parsing.',
+    aiExplanation: 'Sentinel AI Analysis: Type-safety verified. Zero dynamic eval statements or external network calls discovered during AST parsing.',
   },
   {
     id: 'pkg-axios-http',
@@ -127,7 +127,7 @@ export const initialNodes: DependencyNode[] = [
     status: 'safe',
     polygonHash: '0x44cd718...1219',
     threatSummary: 'Known SSRF advisory mitigated in current release version.',
-    aiExplanation: 'Param\'s AI Analysis: Previous cross-origin header leakage is patched. RegEx validation confirms robust input sanitization on URI targets.',
+    aiExplanation: 'Sentinel AI Analysis: Previous cross-origin header leakage is patched. RegEx validation confirms robust input sanitization on URI targets.',
   },
 ];
 

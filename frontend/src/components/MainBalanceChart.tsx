@@ -62,32 +62,34 @@ export const MainBalanceChart: React.FC = () => {
   const areaPath = `${curvePath} L ${points[points.length - 1].x} ${svgHeight} L ${points[0].x} ${svgHeight} Z`;
 
   return (
-    <div className="rounded-3xl bg-[#121412] border border-stone-800 p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden shadow-lg h-full">
+    <div className="rounded-3xl bg-white/[0.03] backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_12px_32px_rgba(0,0,0,0.5)] p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden h-full">
+      {/* Top subtle highlight reflection */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none" />
       
       {/* Top Header: Codebase Security Index Title + Filter Pills */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-2">
         <div>
-          <span className="text-xs font-sans text-stone-400 block tracking-wide">
+          <span className="text-xs font-sans text-stone-400 block tracking-wide font-medium">
             Codebase Security Index
           </span>
-          <div className="flex items-baseline space-x-3 mt-1.5">
-            <span className="text-3xl sm:text-4xl font-sans font-extrabold text-stone-100 tracking-tight">
+          <div className="flex items-baseline space-x-3 mt-1.5 flex-wrap gap-y-1">
+            <span className="text-3xl sm:text-4xl font-sans font-extrabold text-white tracking-tight">
               98.4%
             </span>
-            <span className="text-sm font-sans font-medium bg-gradient-to-r from-emerald-500 via-lime-400 to-stone-300 bg-clip-text text-transparent">
+            <span className="text-sm font-sans font-medium bg-gradient-to-r from-emerald-400 via-teal-300 to-lime-300 bg-clip-text text-transparent">
               Trust Rating
             </span>
-            <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-[#161a15] text-lime-400 text-xs font-sans font-semibold border border-lime-800/40">
+            <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-emerald-950/60 text-emerald-400 text-xs font-sans font-semibold border border-emerald-800/40">
               <span>{currentData.percent}</span>
             </span>
           </div>
-          <span className="text-[11px] text-stone-500 font-mono mt-1 block">
+          <span className="text-[11px] text-stone-400 font-sans mt-1.5 block">
             2,847 Packages Audited • Zero-Day Defense Verified
           </span>
         </div>
 
         {/* Time Filter Pills matching the reference image */}
-        <div className="inline-flex items-center p-1 rounded-full bg-[#0e100f] border border-stone-800 self-start sm:self-auto">
+        <div className="inline-flex items-center p-1 rounded-full bg-black/40 border border-white/10 self-start sm:self-auto backdrop-blur-md">
           {(['1 year', '6 month', '3-month', '1 month'] as TimeFilter[]).map((tab) => (
             <button
               key={tab}
@@ -97,7 +99,7 @@ export const MainBalanceChart: React.FC = () => {
               }}
               className={`px-3 py-1 rounded-full text-xs font-sans transition-all duration-200 capitalize ${
                 filter === tab
-                  ? 'bg-gradient-to-r from-lime-600 via-emerald-700 to-stone-800 text-stone-100 font-semibold border border-lime-500/30'
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white font-semibold border border-white/20 shadow-sm'
                   : 'text-stone-400 hover:text-stone-200'
               }`}
             >
@@ -116,9 +118,9 @@ export const MainBalanceChart: React.FC = () => {
         >
           <defs>
             <linearGradient id="warmGlowGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#84cc16" stopOpacity="0.25" />
-              <stop offset="60%" stopColor="#65a30d" stopOpacity="0.08" />
-              <stop offset="100%" stopColor="#3f6212" stopOpacity="0.0" />
+              <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
+              <stop offset="60%" stopColor="#059669" stopOpacity="0.08" />
+              <stop offset="100%" stopColor="#047857" stopOpacity="0.0" />
             </linearGradient>
           </defs>
 
@@ -129,7 +131,7 @@ export const MainBalanceChart: React.FC = () => {
           <path
             d={curvePath}
             fill="none"
-            stroke="#84cc16"
+            stroke="#10b981"
             strokeWidth="2.5"
             strokeLinecap="round"
           />
@@ -166,7 +168,7 @@ export const MainBalanceChart: React.FC = () => {
               left: `${(points[hoveredPoint].x / svgWidth) * 100}%`,
             }}
           >
-            <span className="text-stone-400 text-[10px] block font-mono">
+            <span className="text-stone-400 text-[11px] block font-sans">
               {points[hoveredPoint].label} 2026 Audit
             </span>
             <span className="text-stone-100 font-bold">

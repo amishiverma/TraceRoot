@@ -102,7 +102,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                       <span className={`font-medium ${notif.severity === 'critical' ? 'text-rose-400' : 'text-lime-400'}`}>
                         {notif.title}
                       </span>
-                      <span className="text-[10px] text-stone-500 font-mono">{notif.timestamp}</span>
+                      <span className="text-[10px] text-stone-400 font-sans">{notif.timestamp}</span>
                     </div>
                     <p className="text-xs text-stone-400 font-sans mt-0.5">{notif.message}</p>
                   </div>
@@ -127,7 +127,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <span className="text-xs font-semibold text-stone-100 font-sans leading-snug">
               Ethan Reynolds
             </span>
-            <span className="text-[10px] text-stone-400 font-mono leading-none">
+            <span className="text-[10px] text-stone-400 font-sans leading-none">
               @ethan_reynolds
             </span>
           </div>

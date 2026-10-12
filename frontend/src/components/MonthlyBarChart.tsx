@@ -16,21 +16,23 @@ export const MonthlyBarChart: React.FC = () => {
   const maxVal = 550;
 
   return (
-    <div className="rounded-3xl bg-[#121412] border border-stone-800 p-6 sm:p-7 flex flex-col justify-between shadow-lg relative overflow-hidden h-full">
+    <div className="rounded-3xl bg-white/[0.03] backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_12px_32px_rgba(0,0,0,0.5)] p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden h-full">
+      {/* Top subtle highlight reflection */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none" />
       
       {/* Header */}
-      <div className="flex items-center justify-between pb-4">
+      <div className="flex items-center justify-between pb-3">
         <div>
-          <span className="text-xs font-sans text-stone-400 block">Monthly Threat Mitigations</span>
-          <span className="text-sm font-sans font-bold text-stone-200">Package Risk Sweeps</span>
+          <span className="text-xs font-sans text-stone-400 block font-medium">Monthly Threat Mitigations</span>
+          <span className="text-sm font-sans font-bold text-white tracking-tight">Package Risk Sweeps</span>
         </div>
-        <span className="inline-flex items-center space-x-1 text-xs font-sans text-lime-400 font-semibold">
+        <span className="inline-flex items-center space-x-1 text-xs font-sans text-emerald-400 font-semibold px-2.5 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-800/40 shadow-sm">
           <TrendingUp className="w-3.5 h-3.5" />
           <span>+24.8% Swept</span>
         </span>
       </div>
 
-      {/* Bar Chart Area */}
+      {/* Bar Chart Area with Soft Glowing Vertical Indicators */}
       <div className="flex-1 flex items-end justify-between gap-2.5 sm:gap-3 py-4 min-h-[160px]">
         {data.map((item, idx) => {
           const isSelected = selectedMonth === idx;
@@ -45,19 +47,19 @@ export const MonthlyBarChart: React.FC = () => {
               {/* Value on top of the bar */}
               <span
                 className={`text-[11px] font-sans font-bold transition-all mb-2 ${
-                  isSelected ? 'text-lime-400 scale-110' : 'text-stone-500 group-hover:text-stone-300'
+                  isSelected ? 'text-emerald-400 scale-105' : 'text-stone-400 group-hover:text-stone-200'
                 }`}
               >
                 {item.label}
               </span>
 
-              {/* Vertical Bar */}
-              <div className="w-full max-w-[42px] h-36 bg-[#161816] rounded-2xl p-1 flex items-end overflow-hidden border border-stone-800 group-hover:border-stone-700 transition-colors">
+              {/* Vertical Bar Container */}
+              <div className="w-full max-w-[42px] h-36 bg-black/40 rounded-2xl p-1 flex items-end overflow-hidden border border-white/5 group-hover:border-white/10 transition-colors">
                 <div
                   className={`w-full rounded-xl transition-all duration-300 ${
                     isSelected
-                      ? 'bg-gradient-to-t from-lime-700 to-lime-500'
-                      : 'bg-[#222621] group-hover:bg-[#2b302a]'
+                      ? 'bg-gradient-to-t from-emerald-600 via-teal-500 to-lime-400 shadow-[0_0_12px_rgba(16,185,129,0.35)]'
+                      : 'bg-gradient-to-t from-stone-800 to-stone-700/80 group-hover:from-emerald-950 group-hover:to-emerald-700/50'
                   }`}
                   style={{ height: `${heightPercent}%` }}
                 />
@@ -66,7 +68,7 @@ export const MonthlyBarChart: React.FC = () => {
               {/* Month Label below */}
               <span
                 className={`text-xs font-sans mt-3 transition-colors ${
-                  isSelected ? 'text-stone-100 font-bold' : 'text-stone-500 group-hover:text-stone-300'
+                  isSelected ? 'text-white font-bold' : 'text-stone-400 group-hover:text-stone-200'
                 }`}
               >
                 {item.month}
@@ -77,9 +79,9 @@ export const MonthlyBarChart: React.FC = () => {
       </div>
 
       {/* Footer Info */}
-      <div className="pt-3 border-t border-stone-800 flex items-center justify-between text-xs font-sans text-stone-500">
-        <span>Peak Volume: October (500 Analyzed)</span>
-        <span className="text-lime-400/90 font-medium font-mono">42 zero-days deflected</span>
+      <div className="pt-3 border-t border-white/5 flex items-center justify-between text-xs font-sans text-stone-400">
+        <span>Peak: October (500 Analyzed)</span>
+        <span className="text-emerald-400 font-medium font-sans">42 zero-days deflected</span>
       </div>
 
     </div>

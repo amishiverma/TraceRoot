@@ -1,5 +1,5 @@
 import React from 'react';
-import { Terminal, Eye, BookOpen, Layers, Coins, Cpu } from 'lucide-react';
+import { Terminal, Network, BookOpen, Layers, Coins, Cpu } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
 interface NavbarProps {
@@ -58,9 +58,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={onOpenVR}
             className="group flex items-center space-x-1.5 text-sm font-medium text-stone-300 hover:text-white transition-colors"
           >
-            <Eye className="w-4 h-4 text-stone-400 group-hover:text-emerald-400 transition-colors" />
-            <span>VR/AR View</span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.04] text-emerald-300 border border-white/10">3D</span>
+            <Network className="w-4 h-4 text-stone-400 group-hover:text-emerald-400 transition-colors" />
+            <span>Attack Surface</span>
+            <span className="text-[10px] font-sans font-semibold px-2 py-0.5 rounded-full bg-white/[0.04] text-emerald-300 border border-white/10">3D</span>
           </button>
 
           <button

@@ -86,25 +86,25 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({ logs, onSelectRepo
                     <div className="font-semibold text-stone-200 group-hover:text-lime-300 transition-colors">
                       {log.repo}
                     </div>
-                    <div className="text-[11px] font-mono text-stone-400 flex items-center gap-1 mt-0.5">
+                    <div className="text-[11px] font-sans text-stone-400 flex items-center gap-1 mt-0.5">
                       <GitCommit className="w-3 h-3 text-stone-500" />
-                      <span>{log.branch} • {log.commitHash}</span>
+                      <span>{log.branch} • <span className="font-mono text-stone-300">{log.commitHash}</span></span>
                     </div>
                   </td>
 
                   {/* Risk Severity Badge */}
                   <td className="py-3 px-3">
                     <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-medium ${
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-sans font-medium ${
                         isCritical
                           ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
                           : isMedium
                           ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                          : 'bg-lime-950/40 text-lime-400 border border-lime-800/40'
+                          : 'bg-emerald-950/40 text-emerald-400 border border-emerald-800/40'
                       }`}
                     >
                       <span className={`w-1.5 h-1.5 rounded-full ${
-                        isCritical ? 'bg-rose-500' : isMedium ? 'bg-amber-400' : 'bg-lime-500'
+                        isCritical ? 'bg-rose-500' : isMedium ? 'bg-amber-400' : 'bg-emerald-500'
                       }`} />
                       {log.riskScore} / 100
                     </span>
@@ -113,13 +113,13 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({ logs, onSelectRepo
                   {/* GitHub Action Status */}
                   <td className="py-3 px-3">
                     <span
-                      className={`inline-block px-2.5 py-0.5 rounded-md text-[10px] font-mono font-medium ${
+                      className={`inline-block px-2.5 py-0.5 rounded-md text-[11px] font-sans font-medium ${
                         log.actionStatus === 'BLOCKED PR'
                           ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
                           : log.actionStatus === 'FLAGGED SUSPICIOUS'
                           ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
                           : log.actionStatus === 'ANCHORED'
-                          ? 'bg-lime-950/40 text-lime-400 border border-lime-800/40'
+                          ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-800/40'
                           : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                       }`}
                     >

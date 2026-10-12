@@ -74,20 +74,20 @@ export const AnalyticsChart: React.FC = () => {
       {/* Summary Metrics Row */}
       <div className="grid grid-cols-3 gap-3 my-4 relative z-10 font-sans text-xs">
         <div className="p-3 rounded-2xl bg-[#0e100f] border border-stone-800">
-          <span className="text-stone-500 block text-[10px] font-sans">CURRENT RISK INDEX</span>
-          <span className="text-lg font-bold text-lime-400 flex items-center gap-1">
-            {hoveredItem ? hoveredItem.riskScore : 28} <span className="text-[10px] text-stone-500 font-mono">/ 100</span>
+          <span className="text-stone-400 block text-[10px] font-sans font-medium">CURRENT RISK INDEX</span>
+          <span className="text-lg font-bold text-emerald-400 flex items-center gap-1">
+            {hoveredItem ? hoveredItem.riskScore : 28} <span className="text-[10px] text-stone-400 font-sans">/ 100</span>
           </span>
         </div>
         <div className="p-3 rounded-2xl bg-[#0e100f] border border-stone-800">
-          <span className="text-stone-500 block text-[10px] font-sans">TOTAL SCANNED</span>
-          <span className="text-lg font-bold text-stone-100 font-mono">
+          <span className="text-stone-400 block text-[10px] font-sans font-medium">TOTAL SCANNED</span>
+          <span className="text-lg font-bold text-stone-100 font-sans">
             {hoveredItem ? hoveredItem.packages.toLocaleString() : '2,847'}
           </span>
         </div>
         <div className="p-3 rounded-2xl bg-[#0e100f] border border-stone-800">
-          <span className="text-stone-500 block text-[10px] font-sans">ZERO-DAY SPIKES</span>
-          <span className="text-lg font-bold text-amber-400 flex items-center gap-1 font-mono">
+          <span className="text-stone-400 block text-[10px] font-sans font-medium">ZERO-DAY SPIKES</span>
+          <span className="text-lg font-bold text-amber-400 flex items-center gap-1 font-sans">
             {hoveredItem ? hoveredItem.anomalies : 2}
           </span>
         </div>
@@ -188,20 +188,20 @@ export const AnalyticsChart: React.FC = () => {
             }}
           >
             <div className="text-white font-bold">{points[hoveredIndex].label}</div>
-            <div className="text-lime-400 font-mono">Risk: {points[hoveredIndex].riskScore}/100</div>
-            <div className="text-stone-400 text-[11px] font-mono">Packages: {points[hoveredIndex].packages}</div>
+            <div className="text-emerald-400 font-sans font-medium">Risk: {points[hoveredIndex].riskScore}/100</div>
+            <div className="text-stone-400 text-[11px] font-sans">Packages: {points[hoveredIndex].packages}</div>
           </div>
         )}
       </div>
 
       {/* Bottom Health Indicator */}
       <div className="flex items-center justify-between pt-3 border-t border-stone-800 text-xs font-sans text-stone-400">
-        <span className="flex items-center gap-1.5 text-lime-400 font-medium">
+        <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
           <TrendingDown className="w-3.5 h-3.5" />
           -48% Risk Reduction in Last 30 Days
         </span>
-        <span className="text-[11px] text-stone-500 font-mono">
-          HEURISTIC RECURSION ACTIVE
+        <span className="text-[11px] text-stone-400 font-sans font-medium">
+          Heuristic Recursion Active
         </span>
       </div>
 

@@ -66,16 +66,23 @@ export const ThreatDrawer: React.FC<ThreatDrawerProps> = ({
           <div className="flex items-center justify-between pb-4 border-b border-stone-800">
             <div className="flex items-center space-x-2">
               <span className={`w-2.5 h-2.5 rounded-full ${
-                isCritical ? 'bg-rose-500' : isWarning ? 'bg-amber-500' : 'bg-lime-500'
+                isCritical ? 'bg-rose-500' : isWarning ? 'bg-amber-500' : 'bg-emerald-500'
               }`} />
-              <span className="text-xs font-mono uppercase tracking-wider text-stone-400">
-                THREAT AUDIT DRAWER // {node.category}
+              <span className="text-xs font-sans font-semibold text-stone-300 flex items-center gap-1.5">
+                <span>Threat Audit Drawer</span>
+                <span className="text-stone-500">•</span>
+                <span className="capitalize text-emerald-400">{node.category} Dependency</span>
               </span>
             </div>
 
             <button
-              onClick={onClose}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              type="button"
               className="p-2 rounded-full bg-[#0b0d0c] border border-stone-800 hover:border-stone-700 text-stone-400 hover:text-white transition-colors"
+              title="Close Drawer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -88,8 +95,10 @@ export const ThreatDrawer: React.FC<ThreatDrawerProps> = ({
                 <h2 className="text-2xl font-sans font-bold text-stone-100 tracking-tight">
                   {node.name}
                 </h2>
-                <div className="text-xs font-mono text-lime-400 mt-1">
-                  Version: v{node.version} • License: {node.license}
+                <div className="text-xs font-sans text-stone-400 mt-1 flex items-center gap-2">
+                  <span>Version <span className="font-mono text-stone-300">v{node.version}</span></span>
+                  <span>•</span>
+                  <span>License: <span className="text-stone-300">{node.license}</span></span>
                 </div>
               </div>
 
@@ -99,9 +108,9 @@ export const ThreatDrawer: React.FC<ThreatDrawerProps> = ({
                   ? 'bg-rose-500/15 border-rose-500/40 text-rose-400'
                   : isWarning
                   ? 'bg-amber-500/15 border-amber-500/40 text-amber-400'
-                  : 'bg-lime-950/40 border-lime-800/40 text-lime-400'
+                  : 'bg-emerald-950/40 border-emerald-800/40 text-emerald-400'
               }`}>
-                <div className="text-[10px] font-sans font-semibold tracking-wider">RISK SCORE</div>
+                <div className="text-[10px] font-sans font-semibold tracking-wider text-stone-400">RISK SCORE</div>
                 <div className="text-2xl font-sans font-extrabold">{node.riskScore} / 100</div>
               </div>
             </div>
@@ -109,18 +118,18 @@ export const ThreatDrawer: React.FC<ThreatDrawerProps> = ({
             {/* Quick Metadata Pill Row */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mt-4 font-sans text-xs">
               <div className="p-3 rounded-2xl bg-[#0b0d0c] border border-stone-800">
-                <span className="text-stone-500 block text-[10px]">MAINTAINER</span>
-                <span className="text-stone-200 truncate block font-medium">{node.maintainer}</span>
+                <span className="text-stone-400 block text-[10px] font-semibold uppercase tracking-wider">Maintainer</span>
+                <span className="text-stone-200 truncate block font-medium mt-0.5">{node.maintainer}</span>
               </div>
               <div className="p-3 rounded-2xl bg-[#0b0d0c] border border-stone-800">
-                <span className="text-stone-500 block text-[10px]">DOWNLOADS</span>
-                <span className="text-stone-200 font-medium">{node.downloads}</span>
+                <span className="text-stone-400 block text-[10px] font-semibold uppercase tracking-wider">Downloads</span>
+                <span className="text-stone-200 font-medium mt-0.5 block">{node.downloads}</span>
               </div>
               <div className="p-3 rounded-2xl bg-[#0b0d0c] border border-stone-800">
-                <span className="text-stone-500 block text-[10px]">VELOCITY RISK</span>
-                <span className={`capitalize font-bold ${
+                <span className="text-stone-400 block text-[10px] font-semibold uppercase tracking-wider">Velocity Risk</span>
+                <span className={`capitalize font-bold mt-0.5 block ${
                   node.maintainerRisk === 'critical' ? 'text-rose-400' :
-                  node.maintainerRisk === 'medium' ? 'text-amber-400' : 'text-lime-400'
+                  node.maintainerRisk === 'medium' ? 'text-amber-400' : 'text-emerald-400'
                 }`}>
                   {node.maintainerRisk}
                 </span>
@@ -128,23 +137,23 @@ export const ThreatDrawer: React.FC<ThreatDrawerProps> = ({
             </div>
           </div>
 
-          {/* PARAM'S AI THREAT EXPLANATION */}
+          {/* SENTINEL AI THREAT EXPLANATION */}
           <div className="my-6">
-            <div className="rounded-2xl bg-gradient-to-br from-[#121812] to-[#0e120f] border border-lime-800/40 p-5 relative overflow-hidden">
-              <div className="flex items-center space-x-2 text-lime-400 text-xs font-sans font-bold mb-2.5 pb-2 border-b border-stone-800">
+            <div className="rounded-2xl bg-gradient-to-br from-[#121812] to-[#0e120f] border border-emerald-800/40 p-5 relative overflow-hidden">
+              <div className="flex items-center space-x-2 text-emerald-400 text-xs font-sans font-bold mb-2.5 pb-2 border-b border-stone-800">
                 <Bot className="w-4 h-4" />
-                <span>PARAM'S AI THREAT EXPLAINER</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-lime-950/60 text-lime-400 font-mono border border-lime-800/40">
-                  v3.8-HEURISTICS
+                <span>SENTINEL AI THREAT EXPLAINER</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950/60 text-emerald-400 font-sans font-medium border border-emerald-800/40">
+                  v3.8 Heuristics
                 </span>
               </div>
 
               <div className="text-sm font-sans text-stone-200 leading-relaxed space-y-2">
                 <p className="font-medium text-white">
-                  {node.aiExplanation || "Param's AI Analysis: Continuous heuristic evaluation active. No active zero-day anomalies detected in release artifacts."}
+                  {node.aiExplanation || "Sentinel AI Analysis: Continuous heuristic evaluation active. No active zero-day anomalies detected in release artifacts."}
                 </p>
-                <div className="text-xs font-mono text-stone-400 pt-2 border-t border-stone-800">
-                  <span className="text-lime-300">Anomaly Fingerprint:</span> Sudden maintainer email modification combined with high-entropy binary payload inside test fixtures.
+                <div className="text-xs font-sans text-stone-400 pt-2 border-t border-stone-800">
+                  <span className="text-emerald-300 font-medium">Anomaly Fingerprint:</span> Sudden maintainer email modification combined with high-entropy binary payload inside test fixtures.
                 </div>
               </div>
             </div>
@@ -161,14 +170,14 @@ export const ThreatDrawer: React.FC<ThreatDrawerProps> = ({
             </div>
 
             {node.cves.length > 0 ? (
-              <div className="space-y-2 text-xs font-mono">
+              <div className="space-y-2 text-xs font-sans">
                 {node.cves.map((cve) => (
                   <div
                     key={cve}
                     className="p-3 rounded-2xl bg-[#0b0d0c] border border-rose-500/30 flex items-center justify-between"
                   >
                     <div>
-                      <span className="text-rose-400 font-bold">{cve}</span>
+                      <span className="text-rose-400 font-mono font-bold">{cve}</span>
                       <span className="text-stone-400 text-[11px] font-sans block mt-0.5">
                         Supply chain remote code execution &amp; credential leakage vector
                       </span>
@@ -177,7 +186,7 @@ export const ThreatDrawer: React.FC<ThreatDrawerProps> = ({
                       href={`https://osv.dev/vulnerability/${cve}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-lime-400 hover:underline text-[11px] flex items-center gap-1"
+                      className="text-emerald-400 hover:underline text-[11px] font-sans flex items-center gap-1"
                     >
                       <span>OSV Record</span>
                       <ExternalLink className="w-3 h-3" />
@@ -186,7 +195,7 @@ export const ThreatDrawer: React.FC<ThreatDrawerProps> = ({
                 ))}
               </div>
             ) : (
-              <div className="p-3.5 rounded-2xl bg-[#0b0d0c] border border-stone-800 text-xs font-sans text-lime-400 flex items-center gap-2">
+              <div className="p-3.5 rounded-2xl bg-[#0b0d0c] border border-stone-800 text-xs font-sans text-emerald-400 flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Zero published CVE advisories currently linked to this package.</span>
               </div>
@@ -195,23 +204,23 @@ export const ThreatDrawer: React.FC<ThreatDrawerProps> = ({
 
           {/* Blockchain Trust Proof for this package */}
           {node.polygonHash && (
-            <div className="mb-6 p-3.5 rounded-2xl bg-[#0b0d0c] border border-stone-800 font-mono text-xs">
+            <div className="mb-6 p-3.5 rounded-2xl bg-[#0b0d0c] border border-stone-800 text-xs font-sans">
               <div className="flex items-center justify-between text-[11px] text-stone-400 pb-2 border-b border-stone-800">
-                <span className="flex items-center gap-1 text-lime-400">
+                <span className="flex items-center gap-1 text-emerald-400 font-medium">
                   <Lock className="w-3.5 h-3.5" />
-                  POLYGON AUDIT RECEIPT
+                  Polygon Audit Receipt
                 </span>
-                <span className="text-stone-500">Block #5,928,174</span>
+                <span className="text-stone-500 font-mono">Block #5,928,174</span>
               </div>
               <div className="flex items-center justify-between mt-2.5">
-                <span className="text-lime-300 truncate max-w-[240px]">
+                <span className="text-emerald-300 font-mono truncate max-w-[240px]">
                   {node.polygonHash}
                 </span>
                 <button
                   onClick={handleCopyHash}
-                  className="text-[11px] text-stone-300 hover:text-white px-3 py-1 rounded-full bg-stone-900 border border-stone-800 flex items-center gap-1.5"
+                  className="text-[11px] font-sans text-stone-300 hover:text-white px-3 py-1 rounded-full bg-stone-900 border border-stone-800 flex items-center gap-1.5"
                 >
-                  {copiedHash ? <Check className="w-3 h-3 text-lime-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedHash ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copiedHash ? 'Copied' : 'Copy'}</span>
                 </button>
               </div>

@@ -124,18 +124,18 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                       <div className="text-xs font-semibold text-stone-200 group-hover:text-lime-300 transition-colors">
                         {node.name}
                       </div>
-                      <div className="text-[11px] font-mono text-stone-400">
+                      <div className="text-[11px] font-sans text-stone-400">
                         v{node.version} • {node.maintainer}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center space-x-3">
-                    <span className={`text-[10px] font-mono font-medium px-2 py-0.5 rounded-md ${
+                    <span className={`text-[10px] font-sans font-medium px-2 py-0.5 rounded-md ${
                       node.status === 'critical' ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30' :
-                      node.status === 'warning' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' : 'bg-lime-950/40 text-lime-400 border border-lime-800/40'
+                      node.status === 'warning' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' : 'bg-emerald-950/40 text-emerald-400 border border-emerald-800/40'
                     }`}>
-                      {node.riskScore} RISK
+                      {node.riskScore} Risk
                     </span>
                     <ArrowRight className="w-3.5 h-3.5 text-stone-500 group-hover:text-lime-400 transition-colors" />
                   </div>

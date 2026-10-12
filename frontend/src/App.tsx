@@ -94,6 +94,7 @@ export const App: React.FC = () => {
     } else {
       setSelectedNode(nodes[1]); // Default to high-risk package (event-stream-patch)
     }
+    setCurrentView('dashboard');
   };
 
   return (
@@ -148,13 +149,13 @@ export const App: React.FC = () => {
                 <button onClick={() => setInfoModalType('ecosystem')} className="hover:text-lime-400 transition-colors">
                   Ecosystem
                 </button>
-                <button onClick={() => setShowVRModal(true)} className="hover:text-lime-300 transition-colors text-lime-400">
-                  VR/AR View
+                <button onClick={() => setShowVRModal(true)} className="hover:text-emerald-300 transition-colors text-emerald-400">
+                  Attack Surface Map
                 </button>
               </div>
 
-              <div className="text-[11px] text-stone-500 font-mono">
-                Polygon PoS Consensus • Protected by Param AI
+              <div className="text-[11px] text-stone-400 font-sans">
+                Polygon PoS Consensus • Protected by Sentinel AI
               </div>
             </div>
           </footer>
@@ -181,13 +182,15 @@ export const App: React.FC = () => {
 
             {/* Main Content Area */}
             <main className="flex-1 p-5 sm:p-7 lg:p-8 overflow-y-auto bg-[#0c0a09] min-h-[calc(100vh-5rem)]">
-              {/* Overview Tab: 3-Column Bento Box matching Reference Image */}
+              {/* Overview Tab: 3-Row Bento Box matching Image 1 */}
               {activeTab === 'overview' && (
                 <DashboardOverview
                   onScanRepo={() => setScanningRepo(`https://github.com/${currentRepo}`)}
                   onVerifyHash={() => setActiveTab('blockchain')}
                   onCtaClick={() => setInfoModalType('pricing')}
                   onSelectItem={handleSelectPackageByName}
+                  onOpenVR={() => setShowVRModal(true)}
+                  currentRepo={currentRepo}
                 />
               )}
 
@@ -199,8 +202,8 @@ export const App: React.FC = () => {
                       <h2 className="text-2xl font-sans font-bold text-stone-100">
                         Dependency Graph &amp; DAG Topology
                       </h2>
-                      <p className="text-xs text-stone-400 font-mono mt-0.5">
-                        Interactive supply chain visualization for {currentRepo}
+                      <p className="text-xs text-stone-400 font-sans mt-0.5">
+                        Interactive supply chain visualization for <span className="text-stone-300 font-medium">{currentRepo}</span>
                       </p>
                     </div>
                   </div>
@@ -222,7 +225,7 @@ export const App: React.FC = () => {
                       <h2 className="text-2xl font-sans font-bold text-stone-100">
                         Threat Analytics &amp; Risk Metrics
                       </h2>
-                      <p className="text-xs text-stone-400 font-mono mt-0.5">
+                      <p className="text-xs text-stone-400 font-sans mt-0.5">
                         Time-series anomaly progressions, dormant code spikes, and risk index
                       </p>
                     </div>
@@ -262,7 +265,10 @@ export const App: React.FC = () => {
       {/* INTERACTIVE THREAT DRAWER (Triggered on Node / Transaction Click) */}
       <ThreatDrawer
         node={selectedNode}
-        onClose={() => setSelectedNode(null)}
+        onClose={() => {
+          setSelectedNode(null);
+          setCurrentView('dashboard');
+        }}
         onIsolate={handleIsolateNode}
         onOverride={handleOverrideNode}
       />
@@ -276,7 +282,7 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* VR/AR 3D SPATIAL TOPOLOGY MODAL */}
+      {/* AUTONOMOUS SUPPLY CHAIN ATTACK SURFACE MODAL */}
       {showVRModal && (
         <VRARViewModal
           onClose={() => setShowVRModal(false)}
@@ -284,6 +290,7 @@ export const App: React.FC = () => {
             const found = nodes.find((n) => n.name === name);
             if (found) {
               setSelectedNode(found);
+              setCurrentView('dashboard');
               setShowVRModal(false);
             }
           }}
@@ -295,7 +302,10 @@ export const App: React.FC = () => {
         isOpen={showCommandPalette}
         onClose={() => setShowCommandPalette(false)}
         nodes={nodes}
-        onSelectNode={(node) => setSelectedNode(node)}
+        onSelectNode={(node) => {
+          setSelectedNode(node);
+          setCurrentView('dashboard');
+        }}
         onNavigateTab={(tab) => {
           setCurrentView('dashboard');
           setActiveTab(tab);

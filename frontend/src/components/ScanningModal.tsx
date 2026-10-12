@@ -18,7 +18,7 @@ export const ScanningModal: React.FC<ScanningModalProps> = ({ repoUrl, onComplet
   const steps = [
     { title: 'Repo Manifests Ingestion', icon: Cpu },
     { title: 'Dependency DAG Synthesis', icon: Terminal },
-    { title: 'Param\'s AI Threat Explainer', icon: Sparkles },
+    { title: 'Sentinel AI Threat Explainer', icon: Sparkles },
     { title: 'OSV.dev & CVE Query Engine', icon: ShieldAlert },
     { title: 'Polygon Blockchain Anchoring', icon: Lock },
   ];
@@ -39,7 +39,7 @@ export const ScanningModal: React.FC<ScanningModalProps> = ({ repoUrl, onComplet
       setCurrentStep(2);
       setLogs((prev) => [
         ...prev,
-        '[AI] Param\'s AI engine analyzing maintainer velocity anomalies...',
+        '[AI] Sentinel AI engine analyzing maintainer velocity anomalies...',
         '[ALERT] High-entropy payload identified in transitive node: event-stream-patch.',
       ]);
     }, 1800);
@@ -89,13 +89,13 @@ export const ScanningModal: React.FC<ScanningModalProps> = ({ repoUrl, onComplet
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-display font-bold text-lg text-stone-100">Deep Security Scan in Progress</span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-lime-950/50 text-lime-400 border border-lime-800/40">
-                  LIVE TELEMETRY
+                <span className="font-sans font-bold text-lg text-stone-100">Deep Security Scan in Progress</span>
+                <span className="text-[10px] font-sans font-medium px-2.5 py-0.5 rounded-full bg-emerald-950/50 text-emerald-400 border border-emerald-800/40">
+                  Live Telemetry
                 </span>
               </div>
-              <p className="text-xs font-mono text-stone-400 truncate max-w-md mt-0.5">
-                Target: {repoUrl}
+              <p className="text-xs font-sans text-stone-400 truncate max-w-md mt-0.5">
+                Target: <span className="font-mono text-stone-300">{repoUrl}</span>
               </p>
             </div>
           </div>
@@ -115,7 +115,7 @@ export const ScanningModal: React.FC<ScanningModalProps> = ({ repoUrl, onComplet
               <span className="w-2 h-2 rounded-full bg-lime-500" />
               Heuristic Engine Recursion
             </span>
-            <span className="text-stone-100 font-mono font-bold text-base">{progress}%</span>
+            <span className="text-stone-100 font-sans font-bold text-base">{progress}%</span>
           </div>
 
           <div className="h-2 w-full bg-[#0b0d0c] rounded-full overflow-hidden border border-stone-800 p-0.5">
@@ -161,12 +161,12 @@ export const ScanningModal: React.FC<ScanningModalProps> = ({ repoUrl, onComplet
 
         {/* High-speed Real-time Terminal Log Console */}
         <div className="rounded-xl bg-[#0b0d0c] border border-stone-800 p-4 font-mono text-xs text-stone-300 relative z-10">
-          <div className="flex items-center justify-between text-[11px] text-stone-400 pb-2 mb-2 border-b border-stone-800">
-            <span className="flex items-center gap-1.5 text-lime-400">
+          <div className="flex items-center justify-between text-[11px] font-sans text-stone-400 pb-2 mb-2 border-b border-stone-800">
+            <span className="flex items-center gap-1.5 text-lime-400 font-medium">
               <Terminal className="w-3.5 h-3.5" />
-              <span>LIVE LOG STREAM // TRACEROOT-CORE-DAEMON</span>
+              <span>Live Daemon Execution Stream</span>
             </span>
-            <span>LATENCY: 12ms</span>
+            <span className="font-sans">12ms Latency</span>
           </div>
 
           <div className="space-y-1.5 h-36 overflow-y-auto pr-2 scrollbar-thin">

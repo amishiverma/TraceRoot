@@ -1,54 +1,156 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, X, Compass, RotateCw, ZoomIn, ZoomOut, Layers, Radio, Shield } from 'lucide-react';
+import { X, RotateCw, Network, ShieldAlert, ShieldCheck, Activity, Layers, Cpu } from 'lucide-react';
 
-interface VRARViewModalProps {
+export interface AttackSurfaceModalProps {
   onClose: () => void;
   onSelectNodeByName?: (name: string) => void;
 }
 
-export const VRARViewModal: React.FC<VRARViewModalProps> = ({ onClose, onSelectNodeByName }) => {
-  const [angle, setAngle] = useState(24);
-  const [depth, setDepth] = useState(45);
-  const [activeSpatialNode, setActiveSpatialNode] = useState<string | null>('event-stream-patch');
+export type VRARViewModalProps = AttackSurfaceModalProps;
 
-  // Auto rotate slightly for futuristic feel
+interface AttackSurfaceNode {
+  name: string;
+  version: string;
+  risk: number;
+  riskLevel: 'critical' | 'warning' | 'safe';
+  riskLabel: string;
+  category: string;
+  color: string;
+  darkColor: string;
+  glowColor: string;
+  summary: string;
+  astAnalysis: string;
+  provenance: string;
+}
+
+export const AttackSurfaceModal: React.FC<AttackSurfaceModalProps> = ({ onClose, onSelectNodeByName }) => {
+  const [angle, setAngle] = useState(24);
+  const [activeVectorNode, setActiveVectorNode] = useState<string>('event-stream-patch');
+  const [hoveredNodeName, setHoveredNodeName] = useState<string | null>(null);
+  const [isAutoRotating, setIsAutoRotating] = useState(true);
+
+  // Smooth autonomous orbit rotation
   useEffect(() => {
+    if (!isAutoRotating) return;
     const interval = setInterval(() => {
-      setAngle((prev) => (prev + 0.4) % 360);
+      setAngle((prev) => (prev + 0.3) % 360);
     }, 50);
     return () => clearInterval(interval);
-  }, []);
+  }, [isAutoRotating]);
 
-  const spatialNodes = [
-    { name: '@traceroot/core', x: 0, y: 0, z: 0, risk: 12, color: '#84cc16', label: 'HUB' },
-    { name: 'event-stream-patch', x: 120, y: -60, z: 80, risk: 94, color: '#f43f5e', label: 'ZERO-DAY' },
-    { name: 'liblzma-native-async', x: -110, y: 80, z: -40, risk: 88, color: '#f43f5e', label: 'MALWARE' },
-    { name: 'ansi-colors-turbo', x: 80, y: 70, z: -60, risk: 58, color: '#65a30d', label: 'DORMANT' },
-    { name: 'react-dom-renderer', x: -90, y: -80, z: 50, risk: 18, color: '#3f6212', label: 'VENDOR' },
-    { name: 'elliptic-curve-fast', x: 0, y: 130, z: 30, risk: 42, color: '#84cc16', label: 'LEAK' },
+  const vectorNodes: AttackSurfaceNode[] = [
+    {
+      name: '@traceroot/core',
+      version: 'v2.4.0',
+      risk: 12,
+      riskLevel: 'safe',
+      riskLabel: 'Verified Hub',
+      category: 'Root Anchor',
+      color: '#10b981',
+      darkColor: '#064e3b',
+      glowColor: 'rgba(16, 185, 129, 0.55)',
+      summary: 'Clean verified root module. Cryptographic signing with developer GPG keys and SLSA Level 3 build provenance.',
+      astAnalysis: 'AST traversal verified: zero dynamic eval hooks, unverified network egress, or bytecode tampering found.',
+      provenance: 'SLSA Level 3 • GitHub Actions OIDC',
+    },
+    {
+      name: 'event-stream-patch',
+      version: 'v4.0.1',
+      risk: 94,
+      riskLevel: 'critical',
+      riskLabel: 'Zero-Day Exploit',
+      category: 'Transitive (Tier 3)',
+      color: '#f43f5e',
+      darkColor: '#881337',
+      glowColor: 'rgba(244, 63, 94, 0.6)',
+      summary: 'Sudden maintainer transfer with obfuscated crypto wallet stealer in postinstall lifecycle.',
+      astAnalysis: 'High-entropy Base64 bytecode injected into test/data.json exfiltrating private tokens to foreign hosts.',
+      provenance: 'Compromised Maintainer Account',
+    },
+    {
+      name: 'liblzma-native-async',
+      version: 'v5.6.1-rc2',
+      risk: 88,
+      riskLevel: 'critical',
+      riskLabel: 'Malware Backdoor',
+      category: 'Native Addon',
+      color: '#e11d48',
+      darkColor: '#4c0519',
+      glowColor: 'rgba(225, 29, 72, 0.6)',
+      summary: 'M4 macro obfuscation tampering with system authentication symbol table.',
+      astAnalysis: 'Build script modifies IFUNC symbol resolution during compilation to bypass RSA verification hooks.',
+      provenance: 'State-Sponsored Backdoor Fingerprint',
+    },
+    {
+      name: 'ansi-colors-turbo',
+      version: 'v1.4.2',
+      risk: 58,
+      riskLevel: 'warning',
+      riskLabel: 'Dormant Trigger',
+      category: 'Direct Dependency',
+      color: '#f59e0b',
+      darkColor: '#78350f',
+      glowColor: 'rgba(245, 158, 11, 0.55)',
+      summary: 'Dormant infinite loop trigger discovered in terminal string escape utility.',
+      astAnalysis: 'Code introduces deliberate CPU exhaustion condition triggered by terminal escape sequence recursion.',
+      provenance: 'Maintainer Protest Denial-of-Service',
+    },
+    {
+      name: 'react-dom-renderer',
+      version: 'v18.3.1',
+      risk: 18,
+      riskLevel: 'safe',
+      riskLabel: 'Vendor Library',
+      category: 'Direct Dependency',
+      color: '#10b981',
+      darkColor: '#064e3b',
+      glowColor: 'rgba(16, 185, 129, 0.5)',
+      summary: 'Official vendor release. Provenance verified against Meta release engineering pipeline.',
+      astAnalysis: 'Clean AST syntax trees. Zero anomalous runtime mutation or unverified outbound sockets.',
+      provenance: 'Official Meta GPG Key',
+    },
+    {
+      name: 'elliptic-curve-fast',
+      version: 'v2.1.0',
+      risk: 42,
+      riskLevel: 'warning',
+      riskLabel: 'Side-Channel Leak',
+      category: 'Direct Dependency',
+      color: '#14b8a6',
+      darkColor: '#134e4a',
+      glowColor: 'rgba(20, 184, 166, 0.55)',
+      summary: 'Timing variance detected in cryptographic scalar multiplication routine.',
+      astAnalysis: 'Side-channel latency variance detected. Cryptographic signatures can leak private keys under timing analysis.',
+      provenance: 'Verified Community Package',
+    },
   ];
+
+  const currentNode = vectorNodes.find((n) => n.name === activeVectorNode) || vectorNodes[1];
+
+  const handleSelectNode = (name: string) => {
+    setActiveVectorNode(name);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/85 backdrop-blur-md">
-      <div className="relative w-full max-w-5xl h-[85vh] rounded-3xl bg-[#121412] border border-stone-800 flex flex-col justify-between overflow-hidden shadow-2xl">
+      <div 
+        className="relative w-full max-w-5xl h-[86vh] rounded-3xl bg-[#0c0a09] border border-white/10 flex flex-col justify-between overflow-hidden shadow-2xl"
+        onMouseEnter={() => setIsAutoRotating(false)}
+        onMouseLeave={() => setIsAutoRotating(true)}
+      >
         
-        {/* Top VR HUD Bar */}
-        <div className="p-6 flex items-center justify-between border-b border-stone-800 relative z-20 bg-[#0b0d0c]">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-[#121412] border border-stone-800 flex items-center justify-center text-lime-400">
-              <Eye className="w-5 h-5" />
+        {/* Top Header */}
+        <div className="px-6 py-5 flex items-center justify-between border-b border-white/10 relative z-20 bg-[#0c0a09]/95 backdrop-blur-md">
+          <div className="flex items-center space-x-3.5">
+            <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-emerald-400">
+              <Network className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-display font-bold text-lg text-stone-100">
-                  Spatial 3D Topology Matrix // VR/AR View
-                </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-lime-950/60 text-lime-400 border border-lime-800/40">
-                  HMD PROTOCOL v2.1
-                </span>
-              </div>
-              <p className="text-xs font-mono text-stone-400 mt-0.5">
-                Spatial Coordinate Engine • Yaw: {Math.round(angle)}° • Pitch: 32° • Roll: 0°
+              <h2 className="font-sans font-semibold text-lg text-white tracking-tight">
+                Autonomous Supply Chain Attack Surface
+              </h2>
+              <p className="text-xs font-sans text-stone-400 mt-0.5">
+                Transitive dependency topology matrix and recursive threat vector analysis
               </p>
             </div>
           </div>
@@ -56,117 +158,353 @@ export const VRARViewModal: React.FC<VRARViewModalProps> = ({ onClose, onSelectN
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setAngle((a) => a + 30)}
-              className="p-2 rounded-full bg-[#121412] border border-stone-800 hover:border-lime-700/50 text-stone-300 hover:text-white transition-colors"
-              title="Manual Rotate"
+              className="p-2 rounded-full bg-white/[0.04] border border-white/10 hover:border-emerald-500/40 text-stone-300 hover:text-white transition-colors"
+              title="Rotate Vector Grid"
             >
               <RotateCw className="w-4 h-4" />
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-full bg-[#121412] border border-stone-800 hover:border-stone-700 text-stone-300 hover:text-white transition-colors"
+              className="p-2 rounded-full bg-white/[0.04] border border-white/10 hover:border-white/20 text-stone-300 hover:text-white transition-colors"
+              title="Close Matrix"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* 3D Spatial Canvas Area */}
-        <div className="relative flex-1 w-full flex items-center justify-center overflow-hidden">
+        {/* 3D Visual Canvas Area */}
+        <div className="relative flex-1 w-full flex items-center justify-center overflow-hidden bg-[#0c0a09]">
           
-          {/* Orbital Depth Rings */}
-          <div className="absolute w-[600px] h-[600px] rounded-full border border-stone-800 pointer-events-none animate-spin" style={{ animationDuration: '60s' }} />
-          <div className="absolute w-[440px] h-[440px] rounded-full border border-stone-800/80 pointer-events-none" />
-          <div className="absolute w-[280px] h-[280px] rounded-full border border-lime-900/30 pointer-events-none" />
+          {/* Subtle Ambient Radial Backlight */}
+          <div className="absolute w-[600px] h-[600px] rounded-full bg-emerald-950/15 blur-3xl pointer-events-none" />
 
-          {/* Central Grid Plane */}
+          {/* Minimalist Radar & Orbital Depth Rings */}
+          <div className="absolute w-[640px] h-[640px] rounded-full border border-stone-800/40 pointer-events-none animate-spin" style={{ animationDuration: '100s' }} />
+          <div className="absolute w-[470px] h-[470px] rounded-full border border-stone-800/60 pointer-events-none" />
+          <div className="absolute w-[310px] h-[310px] rounded-full border border-emerald-900/30 pointer-events-none" />
+          <div className="absolute w-[170px] h-[170px] rounded-full border border-emerald-900/20 pointer-events-none" />
+
+          {/* Radar Axis Lines */}
+          <div className="absolute w-full h-[1px] bg-gradient-to-r from-transparent via-stone-800/35 to-transparent pointer-events-none" />
+          <div className="absolute h-full w-[1px] bg-gradient-to-b from-transparent via-stone-800/35 to-transparent pointer-events-none" />
+
+          {/* Central 3D Plane */}
           <div
-            className="relative w-96 h-96 transition-transform duration-100 flex items-center justify-center"
+            className="relative w-[500px] h-[500px] transition-transform duration-100 flex items-center justify-center"
             style={{
-              transform: `perspective(800px) rotateX(60deg) rotateZ(${angle}deg)`,
+              transform: `perspective(900px) rotateX(56deg) rotateZ(${angle}deg)`,
               transformStyle: 'preserve-3d',
             }}
           >
-            {/* Grid Floor */}
-            <div className="absolute inset-0 border border-lime-800/30 sage-grid opacity-60 rounded-full" />
+            {/* Soft Grid Floor */}
+            <div className="absolute inset-0 border border-emerald-900/20 sage-grid opacity-40 rounded-full" />
 
-            {/* Center Hub */}
-            <div className="w-12 h-12 rounded-full bg-lime-950/60 border-2 border-lime-600 flex items-center justify-center">
-              <div className="w-4 h-4 rounded-full bg-lime-400" />
+            {/* SVG Dynamic Connection Lines */}
+            <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 500 500">
+              <defs>
+                {vectorNodes.map((node) => (
+                  <linearGradient key={`grad-${node.name}`} id={`grad-${node.name}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
+                    <stop offset="100%" stopColor={node.color} stopOpacity="0.75" />
+                  </linearGradient>
+                ))}
+              </defs>
+              {vectorNodes.map((node, index) => {
+                const rad = (angle + index * 60) * (Math.PI / 180);
+                const dist = 165 + (index % 2) * 45;
+                const px = 250 + Math.cos(rad) * dist;
+                const py = 250 + Math.sin(rad) * dist;
+                const isSelected = activeVectorNode === node.name;
+
+                return (
+                  <g key={`line-${node.name}`}>
+                    <line
+                      x1="250"
+                      y1="250"
+                      x2={px}
+                      y2={py}
+                      stroke={`url(#grad-${node.name})`}
+                      strokeWidth={isSelected ? 2 : 1.2}
+                      strokeDasharray={isSelected ? 'none' : '4 4'}
+                      strokeOpacity={isSelected ? 0.9 : 0.4}
+                    />
+                    {/* Pulsing traversal particle along active vector */}
+                    {isSelected && (
+                      <circle
+                        cx={(250 + px) / 2}
+                        cy={(250 + py) / 2}
+                        r="3"
+                        fill={node.color}
+                        className="animate-ping"
+                      />
+                    )}
+                  </g>
+                );
+              })}
+            </svg>
+
+            {/* Center Root Anchor Hub (Glossy 3D Core Sphere) */}
+            <div 
+              className="relative w-14 h-14 rounded-full flex items-center justify-center cursor-pointer group"
+              onClick={() => handleSelectNode('@traceroot/core')}
+              onMouseEnter={() => {
+                setHoveredNodeName('@traceroot/core');
+                handleSelectNode('@traceroot/core');
+              }}
+              onMouseLeave={() => setHoveredNodeName(null)}
+              style={{
+                transform: `rotateZ(-${angle}deg) rotateX(-56deg)`,
+                transformStyle: 'preserve-3d',
+              }}
+            >
+              {/* Outer Glowing Pulsing Rings */}
+              <div className="absolute -inset-2.5 rounded-full border border-emerald-500/30 animate-pulse pointer-events-none" />
+              <div className="absolute -inset-5 rounded-full border border-emerald-500/15 pointer-events-none" />
+
+              {/* 3D Glossy Core Sphere */}
+              <div
+                className="w-12 h-12 rounded-full relative transition-transform duration-300 group-hover:scale-110"
+                style={{
+                  background: 'radial-gradient(circle at 30% 28%, #ffffff 0%, #34d399 25%, #059669 65%, #022c22 100%)',
+                  boxShadow: '0 0 24px rgba(16, 185, 129, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.6), inset -2px -4px 8px rgba(0, 0, 0, 0.8)',
+                }}
+              >
+                {/* Specular Glare */}
+                <div className="absolute top-2 left-2.5 w-3 h-2 rounded-full bg-white/80 blur-[0.6px] -rotate-45 pointer-events-none" />
+              </div>
+
+              {/* Hover-Activated Card for Root Node */}
+              {hoveredNodeName === '@traceroot/core' && (
+                <div className="absolute left-16 px-3.5 py-2.5 rounded-2xl backdrop-blur-xl border border-emerald-500/40 bg-stone-900/95 shadow-2xl min-w-[170px] pointer-events-none animate-in fade-in zoom-in-95 z-30">
+                  <div className="flex items-center justify-between gap-2.5">
+                    <span className="font-sans font-semibold text-xs text-white tracking-tight">
+                      @traceroot/core
+                    </span>
+                    <span className="text-[10px] font-sans font-medium px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                      Verified Hub
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] font-sans text-stone-400 mt-1">
+                    <span>Root Anchor</span>
+                    <span className="font-semibold text-emerald-400">12/100</span>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Floating Spatial Nodes */}
-            {spatialNodes.map((node, index) => {
+            {/* Orbiting 3D Spheres + Hover-Activated Glassmorphic Info Cards */}
+            {vectorNodes.map((node, index) => {
               const rad = (angle + index * 60) * (Math.PI / 180);
-              const dist = 140 + (index % 2) * 50;
+              const dist = 165 + (index % 2) * 45;
               const px = Math.cos(rad) * dist;
               const py = Math.sin(rad) * dist;
+              const isSelected = activeVectorNode === node.name;
+              const isHovered = hoveredNodeName === node.name;
+              const isLeft = px < 0;
 
               return (
                 <div
                   key={node.name}
-                  onClick={() => {
-                    setActiveSpatialNode(node.name);
-                    if (onSelectNodeByName) onSelectNodeByName(node.name);
+                  onClick={() => handleSelectNode(node.name)}
+                  onMouseEnter={() => {
+                    setHoveredNodeName(node.name);
+                    handleSelectNode(node.name);
                   }}
+                  onMouseLeave={() => setHoveredNodeName(null)}
                   style={{
-                    transform: `translate(${px}px, ${py}px) rotateZ(-${angle}deg) rotateX(-60deg)`,
+                    transform: `translate(${px}px, ${py}px) rotateZ(-${angle}deg) rotateX(-56deg)`,
                     transformStyle: 'preserve-3d',
                   }}
-                  className="absolute cursor-pointer group"
+                  className="absolute cursor-pointer group z-10"
                 >
                   <div
-                    className="p-3 rounded-xl border font-sans text-xs transition-all duration-200 hover:scale-105"
-                    style={{
-                      background: '#121412',
-                      borderColor: node.color,
-                    }}
+                    className={`flex items-center gap-3 transition-all duration-300 ${
+                      isLeft ? 'flex-row-reverse' : 'flex-row'
+                    }`}
                   >
-                    <div className="flex items-center space-x-1.5 text-[9px] font-mono">
-                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: node.color }} />
-                      <span style={{ color: node.color }} className="font-bold">{node.label}</span>
+                    {/* Glossy 3D Glowing Sphere (Image 1 Style) */}
+                    <div className="relative flex items-center justify-center">
+                      <div
+                        className={`relative rounded-full transition-all duration-300 flex items-center justify-center ${
+                          isSelected || isHovered ? 'scale-125' : 'group-hover:scale-110'
+                        }`}
+                        style={{
+                          width: '34px',
+                          height: '34px',
+                          background: `radial-gradient(circle at 30% 28%, #ffffff 0%, ${node.color} 32%, ${node.darkColor} 75%, #0a0a0a 100%)`,
+                          boxShadow: isSelected || isHovered
+                            ? `0 0 26px ${node.glowColor}, inset 0 0 10px rgba(255,255,255,0.7), inset -2px -3px 6px rgba(0,0,0,0.85)`
+                            : `0 0 14px ${node.glowColor}, inset 0 0 6px rgba(255,255,255,0.45), inset -2px -3px 5px rgba(0,0,0,0.75)`,
+                        }}
+                      >
+                        {/* Specular White Highlight */}
+                        <div className="absolute top-1.5 left-2 w-2 h-1.5 rounded-full bg-white/90 blur-[0.5px] -rotate-45 pointer-events-none" />
+                        
+                        {/* Bottom Rim Light Reflection */}
+                        <div
+                          className="absolute bottom-1 w-3.5 h-1 rounded-full opacity-70 blur-[0.8px] pointer-events-none"
+                          style={{ backgroundColor: node.color }}
+                        />
+
+                        {/* Pulsing Selection Ring */}
+                        {(isSelected || isHovered) && (
+                          <div
+                            className="absolute -inset-2 rounded-full border animate-ping pointer-events-none opacity-40"
+                            style={{ borderColor: node.color }}
+                          />
+                        )}
+                      </div>
                     </div>
-                    <div className="text-white font-semibold truncate max-w-[120px] mt-0.5">
-                      {node.name}
-                    </div>
-                    <div className="text-[10px] font-mono text-stone-400 mt-1">
-                      Risk: {node.risk}/100
-                    </div>
+
+                    {/* Hover-Activated Floating Glassmorphic Package Info Card */}
+                    {isHovered && (
+                      <div
+                        className="px-3.5 py-2.5 rounded-2xl backdrop-blur-xl border transition-all duration-150 shadow-2xl min-w-[170px] bg-stone-900/95 ring-1 animate-in fade-in zoom-in-95 pointer-events-none z-30"
+                        style={{
+                          borderColor: node.color,
+                          boxShadow: `0 10px 28px rgba(0,0,0,0.7), 0 0 16px ${node.glowColor}`,
+                        }}
+                      >
+                        <div className="flex items-center justify-between gap-2.5">
+                          <span className="font-sans font-semibold text-xs text-white tracking-tight truncate max-w-[110px]">
+                            {node.name}
+                          </span>
+                          <span
+                            className="text-[10px] font-sans font-medium px-2 py-0.5 rounded-full border"
+                            style={{
+                              color: node.color,
+                              backgroundColor: `${node.color}15`,
+                              borderColor: `${node.color}35`,
+                            }}
+                          >
+                            {node.riskLabel}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] font-sans text-stone-400 mt-1 gap-2">
+                          <span className="truncate">{node.category}</span>
+                          <span className="font-semibold" style={{ color: node.color }}>
+                            {node.risk}/100
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* HUD Target Lock on Selected Node */}
-          {activeSpatialNode && (
-            <div className="absolute bottom-6 left-6 p-4 rounded-xl bg-[#121412] border border-stone-800 max-w-xs text-xs">
-              <div className="text-[10px] text-lime-400 uppercase tracking-wider mb-1 flex items-center gap-1 font-semibold">
-                <Radio className="w-3 h-3" /> Spatial Target Lock
+          {/* Dynamic "VECTOR TARGET LOCK" HUD Box (Bottom-Left) */}
+          <div className="absolute bottom-6 left-6 p-4 rounded-2xl bg-white/[0.03] backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] max-w-sm text-xs transition-all duration-200">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs text-emerald-400 font-sans font-semibold flex items-center gap-1.5">
+                {currentNode.riskLevel === 'safe' ? (
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                ) : (
+                  <ShieldAlert className="w-4 h-4" style={{ color: currentNode.color }} />
+                )}
+                <span>Vector Target Lock</span>
               </div>
-              <div className="text-stone-100 font-bold text-sm font-mono">{activeSpatialNode}</div>
-              <p className="text-stone-400 text-xs font-sans mt-1">
-                Visualizing multi-dimensional dependency supply paths through 3D graph vectorization.
-              </p>
+              <span 
+                className="text-[10px] font-sans font-medium px-2 py-0.5 rounded-full border"
+                style={{
+                  color: currentNode.color,
+                  backgroundColor: `${currentNode.color}18`,
+                  borderColor: `${currentNode.color}40`,
+                }}
+              >
+                {currentNode.riskLabel}
+              </span>
             </div>
-          )}
 
-          {/* HUD Sensor Coordinates on Right */}
-          <div className="absolute top-6 right-6 p-3 rounded-xl bg-[#121412] border border-stone-800 font-mono text-[10px] text-stone-400 space-y-1">
-            <div>FOV: 110° STEREOSCOPIC</div>
-            <div>RENDER PIPELINE: WEBGL-ACCELERATED</div>
-            <div>LATENCY: 4.2ms M2P</div>
-            <div className="text-lime-400">STATUS: TRACKING STABLE</div>
+            <div className="flex items-baseline justify-between gap-2">
+              <div className="text-white font-sans font-bold text-sm tracking-tight truncate">
+                {currentNode.name}
+              </div>
+              <span className="text-stone-400 font-sans text-[11px]">
+                {currentNode.version}
+              </span>
+            </div>
+
+            {/* Risk Index Progress Bar */}
+            <div className="mt-2 space-y-1">
+              <div className="flex items-center justify-between text-[11px] font-sans">
+                <span className="text-stone-400">Threat Index</span>
+                <span className="font-semibold" style={{ color: currentNode.color }}>
+                  {currentNode.risk} / 100
+                </span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-white/5 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{
+                    width: `${currentNode.risk}%`,
+                    backgroundColor: currentNode.color,
+                  }}
+                />
+              </div>
+            </div>
+
+            <p className="text-stone-300 text-xs font-sans mt-2.5 leading-relaxed">
+              {currentNode.astAnalysis}
+            </p>
+
+            <div className="mt-2.5 pt-2 border-t border-white/10 flex items-center justify-between text-[11px] font-sans text-stone-400">
+              <span className="truncate max-w-[180px]">{currentNode.provenance}</span>
+              <span className="font-medium text-stone-300">{currentNode.category}</span>
+            </div>
+
+            {onSelectNodeByName && (
+              <button
+                onClick={() => onSelectNodeByName(currentNode.name)}
+                className="w-full mt-3 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-stone-200 border border-white/10 text-xs font-sans font-medium flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <span>Inspect in Threat Audit Drawer</span>
+                <span className="text-emerald-400">→</span>
+              </button>
+            )}
+          </div>
+
+          {/* Top-Right Telemetry & DevSecOps HUD */}
+          <div className="absolute top-6 right-6 p-4 rounded-2xl bg-white/[0.03] backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] font-sans text-xs text-stone-300 space-y-2 min-w-[220px]">
+            <div className="text-stone-400 flex items-center justify-between text-[11px]">
+              <span>Analysis Protocol:</span>
+              <span className="text-stone-200 font-medium">Dynamic AST Vector</span>
+            </div>
+            <div className="text-stone-400 flex items-center justify-between text-[11px]">
+              <span>Traversal Depth:</span>
+              <span className="text-stone-200 font-medium">7-Tier Recursive</span>
+            </div>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-stone-400">Threat Status:</span>
+              <span className="text-emerald-400 font-medium flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Vectors Mapped
+              </span>
+            </div>
+            <div className="pt-2 border-t border-white/10 text-[11px] text-stone-400 flex items-center justify-between">
+              <span>Monitored Nodes:</span>
+              <span className="text-stone-200 font-medium">6 Active Vectors</span>
+            </div>
+            <div className="text-[11px] text-stone-400 flex items-center justify-between">
+              <span>Security Isolation:</span>
+              <span className="text-emerald-400 font-medium">Sandbox Enforced</span>
+            </div>
           </div>
         </div>
 
         {/* Bottom Bar */}
-        <div className="p-4 bg-[#0b0d0c] border-t border-stone-800 flex items-center justify-between text-xs text-stone-400 relative z-20">
-          <span className="font-sans">Spatial Orbit Controls: Mouse Drag to Reposition • Scroll to Zoom</span>
+        <div className="px-6 py-4 bg-[#0c0a09]/95 backdrop-blur-md border-t border-white/10 flex items-center justify-between text-xs text-stone-400 relative z-20">
+          <span className="font-sans text-stone-400">
+            Interactive Topology Map: Hover or click nodes to lock vector telemetry • Orbit: {Math.round(angle)}°
+          </span>
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-full bg-gradient-to-r from-lime-600 via-emerald-700 to-stone-800 hover:from-lime-500 hover:to-emerald-600 text-stone-100 font-semibold text-xs border border-lime-500/30 transition-all shadow-[0_0_15px_rgba(132,204,22,0.15)]"
+            className="px-5 py-2 rounded-full bg-white/[0.08] hover:bg-white/[0.14] text-stone-100 font-sans font-medium text-xs border border-white/15 transition-all shadow-sm"
           >
-            Exit VR View
+            Close Matrix
           </button>
         </div>
 
@@ -174,3 +512,5 @@ export const VRARViewModal: React.FC<VRARViewModalProps> = ({ onClose, onSelectN
     </div>
   );
 };
+
+export const VRARViewModal = AttackSurfaceModal;

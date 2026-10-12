@@ -25,7 +25,7 @@ export const InfoModals: React.FC<InfoModalProps> = ({ type, onClose }) => {
         {type === 'pricing' && (
           <div className="space-y-6">
             <div className="text-center max-w-xl mx-auto">
-              <span className="text-xs font-mono text-emerald-400 uppercase tracking-wider">
+              <span className="text-xs font-sans font-semibold text-emerald-400 uppercase tracking-wider">
                 DEVSECOPS SECURITY SUITE
               </span>
               <h2 className="text-3xl font-sans font-bold text-stone-100 mt-1">
@@ -71,7 +71,7 @@ export const InfoModals: React.FC<InfoModalProps> = ({ type, onClose }) => {
                   </div>
                   <p className="text-xs text-stone-300">Autonomous protection for high-velocity software engineering organizations.</p>
                   <ul className="mt-4 space-y-2.5 text-xs font-sans text-stone-200">
-                    <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400" /> Param's Real-time AI Threat Explainer</li>
+                    <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400" /> Autonomous Real-time AI Threat Explainer</li>
                     <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400" /> Automated GitHub CI/CD Action Bot</li>
                     <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400" /> Polygon Mainnet Merkle Anchors</li>
                     <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400" /> Continuous private repo scanning</li>
@@ -114,7 +114,7 @@ export const InfoModals: React.FC<InfoModalProps> = ({ type, onClose }) => {
         {type === 'ecosystem' && (
           <div className="space-y-6">
             <div>
-              <span className="text-xs font-mono text-emerald-400 uppercase tracking-wider">
+              <span className="text-xs font-sans font-semibold text-emerald-400 uppercase tracking-wider">
                 INTEROPERABILITY &amp; INTEGRATIONS
               </span>
               <h2 className="text-3xl font-sans font-bold text-stone-100 mt-1">
@@ -150,7 +150,7 @@ export const InfoModals: React.FC<InfoModalProps> = ({ type, onClose }) => {
         {type === 'docs' && (
           <div className="space-y-6 font-sans text-xs">
             <div>
-              <span className="text-xs font-mono text-emerald-400 uppercase tracking-wider">
+              <span className="text-xs font-sans font-semibold text-emerald-400 uppercase tracking-wider">
                 DEVELOPER DOCUMENTATION
               </span>
               <h2 className="text-3xl font-sans font-bold text-stone-100 mt-1">

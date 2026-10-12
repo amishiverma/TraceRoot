@@ -518,18 +518,18 @@ const HeroScrollySection: React.FC<LandingHeroProps> = ({ onStartScan }) => {
               Our autonomous classifier monitors maintainer velocity shifts, high-entropy bytecode injection, and hidden socket calls before packages reach your production fleet.
             </p>
 
-            <div className="bg-black/30 border border-white/5 rounded-2xl p-4 space-y-2.5 text-xs font-mono">
+            <div className="bg-black/30 border border-white/5 rounded-2xl p-4 space-y-2.5 text-xs font-sans">
               <div className="flex justify-between text-stone-400">
                 <span>Zero-Days Neutralized:</span>
-                <span className="text-emerald-400 font-bold">14,290</span>
+                <span className="text-emerald-400 font-bold font-sans">14,290</span>
               </div>
               <div className="flex justify-between text-stone-400">
                 <span>False-Positive Ratio:</span>
-                <span className="text-stone-300 font-bold">0.00%</span>
+                <span className="text-stone-300 font-bold font-sans">0.00%</span>
               </div>
               <div className="flex justify-between text-stone-400">
                 <span>Classification Latency:</span>
-                <span className="text-emerald-400 font-bold">&lt; 420 ms</span>
+                <span className="text-emerald-400 font-bold font-sans">&lt; 420 ms</span>
               </div>
             </div>
           </div>
@@ -551,10 +551,10 @@ const HeroScrollySection: React.FC<LandingHeroProps> = ({ onStartScan }) => {
               Audit results and package state hashes are cryptographically anchored to Polygon mainnet, providing mathematical proof of zero tampering.
             </p>
 
-            <div className="bg-black/30 border border-white/5 rounded-2xl p-4 space-y-2.5 text-xs font-mono">
+            <div className="bg-black/30 border border-white/5 rounded-2xl p-4 space-y-2.5 text-xs font-sans">
               <div className="flex justify-between text-stone-400">
                 <span>Mainnet Anchor Block:</span>
-                <span className="text-stone-100 font-bold">#5,928,174</span>
+                <span className="text-stone-100 font-bold font-mono">#5,928,174</span>
               </div>
               <div className="flex justify-between text-stone-400">
                 <span>Ledger Integrity:</span>
@@ -562,7 +562,7 @@ const HeroScrollySection: React.FC<LandingHeroProps> = ({ onStartScan }) => {
               </div>
               <div className="flex justify-between text-stone-400">
                 <span>Merkle Roots Anchored:</span>
-                <span className="text-stone-100 font-bold">2,847 Anchors</span>
+                <span className="text-stone-100 font-bold font-sans">2,847 Anchors</span>
               </div>
             </div>
           </div>
@@ -578,8 +578,8 @@ const HeroScrollySection: React.FC<LandingHeroProps> = ({ onStartScan }) => {
           className="absolute inset-0 z-30 max-w-5xl mx-auto px-4 w-full flex flex-col justify-center items-center my-auto"
         >
           <div className="text-center mb-6 max-w-2xl mx-auto">
-            <span className="text-xs font-mono uppercase tracking-widest text-emerald-400 font-semibold flex items-center justify-center gap-1.5 mb-2">
-              <Zap className="w-3.5 h-3.5 text-emerald-400" /> 03 // LIVE REPOSITORY GATEWAY
+            <span className="text-xs font-sans uppercase tracking-wider text-emerald-400 font-semibold flex items-center justify-center gap-1.5 mb-2">
+              <Zap className="w-3.5 h-3.5 text-emerald-400" /> Live Repository Gateway
             </span>
             <h2 className="text-3xl sm:text-5xl font-sans font-bold text-white tracking-tight">
               Audit Any Repository in{' '}
@@ -648,7 +648,7 @@ const HeroScrollySection: React.FC<LandingHeroProps> = ({ onStartScan }) => {
                 <span className="tracking-wider">POLYGON ANCHOR</span>
               </div>
               <div className="text-2xl sm:text-3xl font-sans font-bold text-white tracking-tight">100% PROVEN</div>
-              <div className="text-[11px] font-mono text-emerald-400 mt-1 font-medium">Block #5.9M</div>
+              <div className="text-[11px] font-sans text-emerald-400 mt-1 font-medium">Block #5.9M</div>
             </div>
 
             <div className="glassmorphic-card rounded-2xl p-4 sm:p-5 text-left transition-all duration-300 hover:border-white/35 group">

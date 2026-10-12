@@ -240,7 +240,7 @@ export const DependencyGraph: React.FC<DependencyGraphProps> = ({
                   <div className="font-sans text-xs font-bold text-stone-100 truncate group-hover:text-lime-400 transition-colors">
                     {node.name}
                   </div>
-                  <div className="text-[10px] font-mono text-stone-500 truncate">
+                  <div className="text-[10px] font-sans text-stone-400 truncate">
                     v{node.version}
                   </div>
 
@@ -282,8 +282,8 @@ export const DependencyGraph: React.FC<DependencyGraphProps> = ({
             <span>70+ Critical Zero-Day</span>
           </span>
         </div>
-        <span className="text-[11px] text-lime-400 font-medium">
-          Click any node to inspect Param's AI Threat Explanation
+        <span className="text-[11px] text-emerald-400 font-medium">
+          Click any node to inspect Autonomous AI Threat Explanation
         </span>
       </div>
 

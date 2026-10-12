@@ -28,8 +28,8 @@ export const StackedCardContainer: React.FC<StackedCardContainerProps> = ({
           <span className="text-xs font-sans text-stone-400 block">Polygon Trust Anchor</span>
           <span className="text-sm font-sans font-bold text-stone-200">Immutable Proof Status</span>
         </div>
-        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#161a15] text-lime-400 border border-lime-800/40 font-semibold">
-          VERIFIED ON-CHAIN
+        <span className="text-[11px] font-sans px-2.5 py-0.5 rounded-full bg-[#161a15] text-emerald-400 border border-emerald-800/40 font-medium">
+          Verified On-Chain
         </span>
       </div>
 
@@ -55,15 +55,15 @@ export const StackedCardContainer: React.FC<StackedCardContainerProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center space-x-1.5 text-xs font-mono tracking-wider font-bold text-stone-200">
-              <span>POLYGON MAINNET</span>
-              <div className="w-2 h-2 rounded-full bg-lime-400" />
+            <div className="flex items-center space-x-1.5 text-xs font-sans font-semibold text-stone-200">
+              <span>Polygon Mainnet</span>
+              <div className="w-2 h-2 rounded-full bg-emerald-400" />
             </div>
           </div>
 
           {/* Center: Block Height & Security Shield State */}
           <div className="relative z-10 my-1">
-            <span className="text-[10px] text-lime-200/80 font-sans uppercase tracking-widest block">
+            <span className="text-[10px] text-lime-200/80 font-sans uppercase tracking-wider block font-medium">
               Immutable Block Confirmation
             </span>
             <div className="text-2xl sm:text-3xl font-sans font-extrabold tracking-tight">
@@ -77,12 +77,12 @@ export const StackedCardContainer: React.FC<StackedCardContainerProps> = ({
           {/* Bottom Row: Repo Name & Merkle Digest */}
           <div className="flex items-end justify-between relative z-10 text-xs">
             <div>
-              <span className="text-[10px] text-lime-200/80 block font-mono">REPOSITORY</span>
+              <span className="text-[10px] text-lime-200/80 block font-sans font-medium">REPOSITORY</span>
               <span className="font-sans font-bold tracking-wide">facebook/react</span>
             </div>
 
             <div className="text-right">
-              <span className="text-[10px] text-lime-200/80 block font-mono">MERKLE DIGEST</span>
+              <span className="text-[10px] text-lime-200/80 block font-sans font-medium">MERKLE DIGEST</span>
               <span className="font-mono tracking-wider">0x184f...903b</span>
             </div>
           </div>

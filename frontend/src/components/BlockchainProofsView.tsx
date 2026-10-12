@@ -39,11 +39,11 @@ export const BlockchainProofsView: React.FC = () => {
           <div className="flex items-center space-x-3 shrink-0">
             <div className="p-3.5 rounded-2xl bg-[#161816] border border-stone-800 text-center font-sans">
               <span className="text-[10px] text-stone-400 block font-medium">TOTAL PROOFS ANCHORED</span>
-              <span className="text-xl font-bold text-lime-400 font-mono">14,290</span>
+              <span className="text-xl font-bold text-emerald-400 font-sans">14,290</span>
             </div>
             <div className="p-3.5 rounded-2xl bg-[#161816] border border-stone-800 text-center font-sans">
               <span className="text-[10px] text-stone-400 block font-medium">POLYGON FINALITY</span>
-              <span className="text-xl font-bold text-lime-400 font-mono">2.1s</span>
+              <span className="text-xl font-bold text-emerald-400 font-sans">2.1s</span>
             </div>
           </div>
         </div>
@@ -70,18 +70,18 @@ export const BlockchainProofsView: React.FC = () => {
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-stone-800 gap-2">
               <div className="flex items-center space-x-2.5">
-                <span className="w-2 h-2 rounded-full bg-lime-500" />
-                <span className="font-bold text-stone-100 text-sm">{proof.network}</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#161a15] text-lime-400 border border-lime-800/40 font-medium">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="font-bold text-stone-100 text-sm font-sans">{proof.network}</span>
+                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#161a15] text-emerald-400 border border-emerald-800/40 font-medium font-sans">
                   {proof.status.toUpperCase()}
                 </span>
               </div>
-              <span className="text-stone-400 text-[11px] font-mono">{proof.timestamp}</span>
+              <span className="text-stone-400 text-[11px] font-sans">{proof.timestamp}</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-stone-300">
               <div className="space-y-1 bg-[#0e100f] p-3.5 rounded-xl border border-stone-850 font-mono">
-                <span className="text-stone-500 text-[10px] block font-sans">TRANSACTION HASH</span>
+                <span className="text-stone-400 text-[10px] block font-sans font-medium">TRANSACTION HASH</span>
                 <div className="flex items-center justify-between">
                   <span className="text-lime-400 truncate max-w-[280px]">
                     {proof.txHash}
@@ -96,7 +96,7 @@ export const BlockchainProofsView: React.FC = () => {
               </div>
 
               <div className="space-y-1 bg-[#0e100f] p-3.5 rounded-xl border border-stone-850 font-mono">
-                <span className="text-stone-500 text-[10px] block font-sans">MERKLE ROOT HASH</span>
+                <span className="text-stone-400 text-[10px] block font-sans font-medium">MERKLE ROOT HASH</span>
                 <div className="flex items-center justify-between">
                   <span className="text-stone-300 truncate max-w-[280px]">
                     {proof.merkleRoot}
@@ -111,11 +111,11 @@ export const BlockchainProofsView: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between pt-2 border-t border-stone-800 text-[11px] text-stone-400 gap-2 font-mono">
+            <div className="flex flex-wrap items-center justify-between pt-2 border-t border-stone-800 text-[11px] text-stone-400 gap-2 font-sans">
               <div className="flex items-center space-x-4">
-                <span>Block #{proof.blockNumber}</span>
-                <span>Gas: {proof.gasUsed}</span>
-                <span>Validator: {proof.validator}</span>
+                <span>Block <span className="font-mono text-stone-300">#{proof.blockNumber}</span></span>
+                <span>Gas: <span className="font-mono text-stone-300">{proof.gasUsed}</span></span>
+                <span>Validator: <span className="font-mono text-stone-300">{proof.validator}</span></span>
               </div>
 
               <a

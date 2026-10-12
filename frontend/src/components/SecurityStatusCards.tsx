@@ -43,7 +43,7 @@ export const SecurityStatusCards: React.FC<SecurityStatusCardsProps> = ({ onView
           <span className="text-lime-400 font-medium flex items-center gap-1">
             <span>+14.8%</span> scan throughput
           </span>
-          <span className="text-stone-500 font-mono text-[11px]">18ms latency</span>
+          <span className="text-stone-400 font-sans text-xs">18ms latency</span>
         </div>
       </div>
 
@@ -55,7 +55,7 @@ export const SecurityStatusCards: React.FC<SecurityStatusCardsProps> = ({ onView
               <ShieldAlert className="w-4 h-4" />
               Zero-Days Prevented
             </span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/20 font-medium">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/20 font-medium font-sans">
               Intercepted
             </span>
           </div>
@@ -72,7 +72,7 @@ export const SecurityStatusCards: React.FC<SecurityStatusCardsProps> = ({ onView
           <span className="text-amber-400 font-medium flex items-center gap-1">
             <span>2 Pending Quarantines</span>
           </span>
-          <span className="text-stone-500 font-mono text-[11px]">Auto-Gated</span>
+          <span className="text-stone-400 font-sans text-xs">Auto-Gated</span>
         </div>
       </div>
 
@@ -106,10 +106,10 @@ export const SecurityStatusCards: React.FC<SecurityStatusCardsProps> = ({ onView
         </div>
 
         {/* Live Transaction Hash Preview */}
-        <div className="mt-2 rounded-2xl bg-[#0e100f] border border-stone-800 p-3.5 font-mono text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="mt-2 rounded-2xl bg-[#0e100f] border border-stone-800 p-3.5 font-sans text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center space-x-2 overflow-hidden">
-            <span className="text-stone-500 shrink-0">TX HASH:</span>
-            <span className="text-lime-400 truncate font-medium">
+            <span className="text-stone-400 font-sans text-xs font-medium shrink-0">TX HASH:</span>
+            <span className="text-emerald-400 font-mono truncate font-medium">
               {txHash}
             </span>
           </div>

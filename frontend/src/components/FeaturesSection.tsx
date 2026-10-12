@@ -76,28 +76,28 @@ export const FeaturesSection: React.FC<FeaturesSectionProps> = ({ onExploreFeatu
                   <span className="w-2 h-2 rounded-full bg-emerald-400" />
                   DAG Visualizer Preview
                 </span>
-                <span className="font-mono text-stone-500">Depth: 7 Tiers</span>
+                <span className="font-sans text-stone-400">Depth: 7 Tiers</span>
               </div>
 
               {/* Node connection mock */}
               <div className="py-6 flex items-center justify-around relative">
                 <div className="px-3.5 py-2.5 rounded-full bg-white/[0.04] border border-white/10 text-xs font-sans text-emerald-300 text-center">
                   @traceroot/core
-                  <div className="text-[10px] text-stone-400 font-mono mt-0.5">Risk: 12 (Safe)</div>
+                  <div className="text-[10px] text-stone-400 font-sans mt-0.5">Risk: 12 (Safe)</div>
                 </div>
 
                 <div className="h-0.5 w-12 bg-gradient-to-r from-emerald-600 to-stone-600" />
 
                 <div className="px-3.5 py-2.5 rounded-full bg-white/[0.03] border border-white/10 text-xs font-sans text-stone-300 text-center">
                   ansi-colors-turbo
-                  <div className="text-[10px] text-stone-400 font-mono mt-0.5">Risk: 58 (Review)</div>
+                  <div className="text-[10px] text-stone-400 font-sans mt-0.5">Risk: 58 (Review)</div>
                 </div>
 
                 <div className="h-0.5 w-12 bg-gradient-to-r from-stone-600 to-rose-500" />
 
                 <div className="px-3.5 py-2.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-xs font-sans text-rose-400 text-center">
                   event-stream-patch
-                  <div className="text-[10px] text-rose-400 font-bold font-mono mt-0.5">Risk: 94 (Zero-Day)</div>
+                  <div className="text-[10px] text-rose-400 font-bold font-sans mt-0.5">Risk: 94 (Zero-Day)</div>
                 </div>
               </div>
 
@@ -126,12 +126,12 @@ export const FeaturesSection: React.FC<FeaturesSectionProps> = ({ onExploreFeatu
                   <Bot className="w-6 h-6" />
                 </div>
                 <span className="text-xs font-sans px-3 py-1 rounded-full bg-white/[0.04] text-emerald-300 border border-white/10 font-medium">
-                  Param's Heuristic AI
+                  Sentinel Heuristic AI
                 </span>
               </div>
 
               <h3 className="text-2xl font-sans font-bold text-white mb-3 flex items-center gap-2 group-hover:text-emerald-300 transition-colors">
-                Param's AI Threat Explainer
+                Autonomous AI Threat Explainer
                 <ArrowUpRight className="w-5 h-5 text-emerald-400 opacity-60 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
               </h3>
 
@@ -144,7 +144,7 @@ export const FeaturesSection: React.FC<FeaturesSectionProps> = ({ onExploreFeatu
             <div className="bg-black/30 border border-white/5 rounded-2xl p-5 font-mono text-xs text-stone-300">
               <div className="flex items-center space-x-2 text-emerald-400 pb-2.5 border-b border-white/5">
                 <Terminal className="w-4 h-4" />
-                <span className="font-bold">PARAM AI SYNTHESIS #ZX-882</span>
+                <span className="font-bold">SENTINEL AST SYNTHESIS #ZX-882</span>
               </div>
               <div className="mt-3 space-y-2 text-stone-300">
                 <p className="text-emerald-300">
