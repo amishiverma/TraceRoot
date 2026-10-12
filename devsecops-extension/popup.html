@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TraceRoot DevSecOps Sentinel</title>
+  <style>
+    :root {
+      --bg-pitch: #06080e;
+      --bg-card: #0c121e;
+      --bg-card-subtle: #111a2d;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-cyber: rgba(0, 243, 255, 0.4);
+      --neon-cyan: #00f3ff;
+      --neon-green: #00ff88;
+      --neon-red: #ff0055;
+      --neon-amber: #ffaa00;
+      --text-main: #f1f5f9;
+      --text-muted: #8899b0;
+      --text-dim: #4d5b75;
+      --font-mono: "SF Mono", "Fira Code", "Courier New", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      width: 420px;
+      min-height: 520px;
+      background-color: var(--bg-pitch);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(0, 243, 255, 0.12) 0%, transparent 60%),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 20px 20px, 20px 20px;
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow-x: hidden;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-pitch);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-cyber);
+      border-radius: 4px;
+    }
+
+    /* Top Cyber Navigation Bar */
+    .header {
+      padding: 14px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(12, 18, 30, 0.85);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      font-size: 20px;
+      filter: drop-shadow(0 0 8px var(--neon-cyan));
+    }
+
+    .brand-title {
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      color: #ffffff;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .brand-subtitle {
+      font-size: 9px;
+      color: var(--neon-cyan);
+      letter-spacing: 1.5px;
+      font-family: var(--font-mono);
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      font-family: var(--font-mono);
+      background: rgba(0, 255, 136, 0.1);
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      color: var(--neon-green);
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+
+    .status-pulse {
+      width: 6px;
+      height: 6px;
+      background: var(--neon-green);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--neon-green);
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.5; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.2); }
+      100% { opacity: 0.5; transform: scale(0.9); }
+    }
+
+    /* Main Container */
+    .container {
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* Repo Context Card */
+    .repo-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .repo-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--neon-cyan), transparent);
+    }
+
+    .repo-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .repo-info-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .repo-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--neon-cyan);
+      font-family: var(--font-mono);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    .repo-custom-input {
+      display: none;
+      width: 100%;
+      background: #05070c;
+      border: 1px solid var(--border-cyber);
+      color: #fff;
+      font-size: 12px;
+      padding: 6px 8px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      outline: none;
+      user-select: text;
+    }
+
+    .repo-edit-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 2px 4px;
+    }
+    .repo-edit-btn:hover {
+      color: var(--neon-cyan);
+    }
+
+    /* Action Trigger Button */
+    .scan-btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #0d1527 0%, #152445 100%);
+      border: 1px solid var(--neon-cyan);
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.25);
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .scan-btn:hover {
+      background: linear-gradient(135deg, #102142 0%, #1c3569 100%);
+      border-color: #00ffff;
+      box-shadow: 0 0 22px rgba(0, 243, 255, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .scan-btn:active {
+      transform: translateY(0);
+    }
+
+    .scan-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      border-color: var(--text-dim);
+      box-shadow: none;
+    }
+
+    /* Loading / Scanner State */
+    .loading-state {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 14px;
+      background: var(--bg-card);
+      border: 1px dashed var(--border-cyber);
+      border-radius: 10px;
+      gap: 14px;
+      text-align: center;
+    }
+
+    .radar-scanner {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 2px solid rgba(0, 243, 255, 0.2);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .radar-scanner::after {
+      content: "";
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      border-top-color: var(--neon-cyan);
+      animation: spin 1s linear infinite;
+    }
+
+    .radar-pulse {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(0, 243, 255, 0.15);
+      box-shadow: 0 0 16px rgba(0, 243, 255, 0.5);
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-status-text {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--neon-cyan);
+      letter-spacing: 0.5px;
+    }
+
+    .loading-console {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      background: #04060b;
+      padding: 8px 12px;
+      border-radius: 6px;
+      width: 100%;
+      text-align: left;
+      border-left: 2px solid var(--neon-cyan);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .console-line {
+      display: flex;
+      gap: 6px;
+    }
+    .console-prompt {
+      color: var(--neon-cyan);
+    }
+
+    /* Results Dashboard View */
+    .results-state {
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Risk Score Gauge Card */
+    .risk-banner {
+      background: var(--bg-card);
+      border-radius: 10px;
+      padding: 16px;
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+    }
+
+    /* Dynamic glowing risk themes */
+    .risk-banner.risk-low {
+      border-color: var(--neon-green);
+      box-shadow: 0 0 25px rgba(0, 255, 136, 0.25);
+    }
+    .risk-banner.risk-medium {
+      border-color: var(--neon-amber);
+      box-shadow: 0 0 25px rgba(255, 170, 0, 0.25);
+    }
+    .risk-banner.risk-critical {
+      border-color: var(--neon-red);
+      box-shadow: 0 0 30px rgba(255, 0, 85, 0.35);
+      animation: pulse-red 2s infinite alternate;
+    }
+
+    @keyframes pulse-red {
+      0% { box-shadow: 0 0 20px rgba(255, 0, 85, 0.3); }
+      100% { box-shadow: 0 0 40px rgba(255, 0, 85, 0.65); }
+    }
+
+    .risk-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .risk-title-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+    }
+
+    .risk-badge {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid;
+      text-transform: uppercase;
+    }
+
+    .risk-score-wrapper {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .risk-score-val {
+      font-size: 42px;
+      font-weight: 900;
+      font-family: var(--font-mono);
+      line-height: 1;
+    }
+
+    .risk-score-denom {
+      font-size: 14px;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+
+    .risk-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .risk-bar-fill {
+      height: 100%;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Web3 Blockchain Anchor Card */
+    .web3-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .web3-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .web3-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--neon-green);
+      background: rgba(0, 255, 136, 0.1);
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid rgba(0, 255, 136, 0.25);
+    }
+
+    .web3-subtext {
+      font-size: 9px;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+    }
+
+    .web3-tx-container {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #05070c;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(0, 243, 255, 0.25);
+    }
+
+    .web3-tx-label {
+      font-size: 9px;
+      color: var(--neon-cyan);
+      font-family: var(--font-mono);
+      font-weight: 700;
+    }
+
+    .web3-tx-hash {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: #e2e8f0;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      user-select: text;
+    }
+
+    .copy-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 12px;
+      transition: color 0.2s;
+    }
+
+    .copy-btn:hover {
+      color: var(--neon-cyan);
+    }
+
+    /* Gemini AI Threat Vector Card */
+    .ai-card {
+      background: rgba(13, 21, 38, 0.85);
+      border: 1px solid var(--border-cyber);
+      border-radius: 8px;
+      padding: 14px;
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.15);
+    }
+
+    .ai-card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+    }
+
+    .ai-card-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--neon-cyan);
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+
+    .ai-card-target {
+      font-size: 10px;
+      color: var(--neon-amber);
+      margin-left: auto;
+      font-family: var(--font-mono);
+      background: rgba(255, 170, 0, 0.12);
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    .ai-card-body {
+      font-size: 12px;
+      line-height: 1.5;
+      color: #cbd5e1;
+      user-select: text;
+    }
+
+    /* Dependencies List Section */
+    .deps-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .deps-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.8px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .deps-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 160px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .dep-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #080d17;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      padding: 8px 10px;
+    }
+
+    .dep-info {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .dep-name {
+      font-size: 12px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: #f8fafc;
+    }
+
+    .dep-flags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .flag-pill {
+      font-size: 9px;
+      background: rgba(255, 0, 85, 0.15);
+      color: var(--neon-red);
+      border: 1px solid rgba(255, 0, 85, 0.3);
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-family: var(--font-mono);
+    }
+
+    .flag-clean {
+      font-size: 9px;
+      background: rgba(0, 255, 136, 0.1);
+      color: var(--neon-green);
+      border: 1px solid rgba(0, 255, 136, 0.2);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    .dep-score-badge {
+      font-size: 11px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      border: 1px solid;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* Error Alert Box */
+    .error-card {
+      display: none;
+      background: rgba(255, 0, 85, 0.08);
+      border: 1px solid var(--neon-red);
+      border-radius: 8px;
+      padding: 14px;
+      gap: 8px;
+      flex-direction: column;
+    }
+
+    .error-card-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--neon-red);
+      letter-spacing: 0.8px;
+    }
+
+    .error-msg {
+      font-size: 12px;
+      color: #fecdd3;
+      line-height: 1.4;
+      user-select: text;
+    }
+
+    .error-hint {
+      font-size: 10px;
+      color: var(--text-muted);
+      border-top: 1px solid rgba(255, 0, 85, 0.2);
+      padding-top: 6px;
+    }
+
+    .error-hint code {
+      color: var(--neon-cyan);
+      background: #000;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+
+    /* Footer */
+    .footer {
+      padding: 10px 18px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 10px;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+    }
+
+    .footer a {
+      color: var(--neon-cyan);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation / Header -->
+  <header class="header">
+    <div class="brand">
+      <span class="brand-logo">🛡️</span>
+      <div>
+        <div class="brand-title">TraceRoot <span style="color: var(--neon-cyan);">Sentinel</span></div>
+        <div class="brand-subtitle">FASTAPI // DEVSECOPS // WEB3</div>
+      </div>
+    </div>
+    <div class="status-badge" id="system-status">
+      <span class="status-pulse"></span>
+      <span id="status-text">ONLINE</span>
+    </div>
+  </header>
+
+  <!-- Container -->
+  <main class="container">
+    <!-- Active Repository Context Card -->
+    <section class="repo-card">
+      <div class="repo-label">Target Repository</div>
+      <div class="repo-info-row">
+        <div class="repo-name" id="detected-repo-name">Detecting tab...</div>
+        <button class="repo-edit-btn" id="toggle-custom-url-btn" title="Edit URL">✏️</button>
+      </div>
+      <input 
+        type="text" 
+        id="custom-repo-input" 
+        class="repo-custom-input" 
+        placeholder="https://github.com/owner/repository"
+      />
+    </section>
+
+    <!-- Scan Action Button -->
+    <button id="scan-trigger-btn" class="scan-btn">
+      <span>🛡️</span>
+      <span id="scan-btn-label">Scan Current Repository</span>
+    </button>
+
+    <!-- Loading / Progress Telemetry -->
+    <section id="loading-container" class="loading-state">
+      <div class="radar-scanner">
+        <div class="radar-pulse"></div>
+      </div>
+      <div class="loading-status-text" id="loading-stage-text">Connecting to DevSecOps Backend...</div>
+      <div class="loading-console">
+        <div class="console-line"><span class="console-prompt">&gt;</span> <span id="telemetry-log-1">POST /api/scan dispatched</span></div>
+        <div class="console-line"><span class="console-prompt">&gt;</span> <span id="telemetry-log-2">Auditing manifest dependencies</span></div>
+        <div class="console-line"><span class="console-prompt">&gt;</span> <span id="telemetry-log-3">Synthesizing Gemini AI threat models...</span></div>
+      </div>
+    </section>
+
+    <!-- Error Alert Card -->
+    <section id="error-card" class="error-card">
+      <div class="error-card-title">⚠️ SCAN EXECUTION FAILED</div>
+      <div class="error-msg" id="error-card-msg">Unable to connect to scanner service.</div>
+      <div class="error-hint">
+        Backend Endpoint: <code>http://localhost:8000/api/scan</code>. Check FastAPI status.
+      </div>
+    </section>
+
+    <!-- Results State -->
+    <section id="results-container" class="results-state">
+      <!-- Overall Risk Score Card -->
+      <div class="risk-banner" id="risk-banner-card">
+        <div class="risk-header-row">
+          <span class="risk-title-label">MAX RISK RATING</span>
+          <span class="risk-badge" id="risk-badge-text">ELEVATED</span>
+        </div>
+        <div class="risk-score-wrapper">
+          <span class="risk-score-val" id="max-risk-score-val">0</span>
+          <span class="risk-score-denom">/ 100</span>
+        </div>
+        <div class="risk-bar">
+          <div class="risk-bar-fill" id="risk-bar-fill"></div>
+        </div>
+      </div>
+
+      <!-- Web3 Blockchain Anchor Card -->
+      <div class="web3-card">
+        <div class="web3-header">
+          <span class="web3-badge">✅ Anchored to Web3</span>
+          <span class="web3-subtext">ETHEREUM / POLYGON</span>
+        </div>
+        <div class="web3-tx-container">
+          <span class="web3-tx-label">TX:</span>
+          <span class="web3-tx-hash" id="web3-tx-hash-display">0x0000000000000000000000000000000000000000</span>
+          <button class="copy-btn" id="copy-tx-btn" title="Copy Transaction Hash">📋</button>
+        </div>
+      </div>
+
+      <!-- Gemini AI Threat Vector Explanation Card -->
+      <div class="ai-card">
+        <div class="ai-card-header">
+          <span style="font-size: 14px;">🤖</span>
+          <span class="ai-card-title">Gemini AI Threat Analysis</span>
+          <span class="ai-card-target" id="ai-target-pkg"></span>
+        </div>
+        <div class="ai-card-body" id="ai-threat-explanation-text">
+          No threat vectors flagged.
+        </div>
+      </div>
+
+      <!-- Analyzed Dependencies Accordion / List -->
+      <div class="deps-card">
+        <div class="deps-title">
+          <span>AUDITED PACKAGES</span>
+          <span id="deps-count-tag" style="color: var(--neon-cyan);">0</span>
+        </div>
+        <div class="deps-list" id="deps-list-container">
+          <!-- Populated by popup.js -->
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <span>ENDPOINT: :8000/api/scan</span>
+    <span>TraceRoot v1.0.0</span>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>
