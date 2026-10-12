@@ -150,7 +150,7 @@ export const SettingsModal: React.FC = () => {
 
           <button
             onClick={handleSave}
-            className="flex items-center space-x-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-lime-600 via-emerald-700 to-stone-800 hover:from-lime-500 hover:to-emerald-600 text-stone-100 font-semibold text-xs border border-lime-500/30 transition-all"
+            className="flex items-center space-x-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-lime-600 via-emerald-700 to-stone-800 hover:from-lime-500 hover:to-emerald-600 text-stone-100 font-semibold text-xs border border-lime-500/30 transition-all shadow-[0_0_15px_rgba(132,204,22,0.15)]"
           >
             <Save className="w-4 h-4" />
             <span>Save Configuration</span>

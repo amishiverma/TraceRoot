@@ -16,7 +16,7 @@ export const InfoModals: React.FC<InfoModalProps> = ({ type, onClose }) => {
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-6 right-6 p-2 rounded-xl bg-[#0b0d0c] border border-stone-800 hover:border-stone-700 text-stone-400 hover:text-white transition-colors"
+          className="absolute top-6 right-6 p-2 rounded-full bg-[#0b0d0c] border border-stone-800 hover:border-stone-700 text-stone-400 hover:text-white transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
@@ -49,7 +49,7 @@ export const InfoModals: React.FC<InfoModalProps> = ({ type, onClose }) => {
                     <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-lime-400" /> Public blockchain proofs</li>
                   </ul>
                 </div>
-                <button onClick={onClose} className="w-full mt-6 py-2.5 rounded-xl bg-stone-900 border border-stone-800 text-xs font-sans text-stone-200 hover:border-lime-700/50">
+                <button onClick={onClose} className="w-full mt-6 py-2.5 rounded-full bg-stone-900 border border-stone-800 text-xs font-sans text-stone-200 hover:border-lime-700/50">
                   CURRENT PLAN
                 </button>
               </div>
@@ -70,7 +70,7 @@ export const InfoModals: React.FC<InfoModalProps> = ({ type, onClose }) => {
                     <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-lime-400" /> Continuous private repo scanning</li>
                   </ul>
                 </div>
-                <button onClick={onClose} className="w-full mt-6 py-2.5 rounded-xl bg-gradient-to-r from-lime-600 via-emerald-700 to-stone-800 hover:from-lime-500 hover:to-emerald-600 text-stone-100 font-sans text-xs font-semibold border border-lime-500/30">
+                <button onClick={onClose} className="w-full mt-6 py-2.5 rounded-full bg-gradient-to-r from-lime-600 via-emerald-700 to-stone-800 hover:from-lime-500 hover:to-emerald-600 text-stone-100 font-sans text-xs font-semibold border border-lime-500/30">
                   UPGRADE SHIELD
                 </button>
               </div>
@@ -87,7 +87,7 @@ export const InfoModals: React.FC<InfoModalProps> = ({ type, onClose }) => {
                     <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-lime-400" /> Custom heuristic ML model weights</li>
                   </ul>
                 </div>
-                <button onClick={onClose} className="w-full mt-6 py-2.5 rounded-xl bg-stone-900 border border-stone-800 text-xs font-sans text-stone-200 hover:border-lime-700/50">
+                <button onClick={onClose} className="w-full mt-6 py-2.5 rounded-full bg-stone-900 border border-stone-800 text-xs font-sans text-stone-200 hover:border-lime-700/50">
                   CONTACT SECURITY TEAM
                 </button>
               </div>
