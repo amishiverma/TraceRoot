@@ -57,7 +57,7 @@ def _validate_package_record(record: dict[str, Any], index: int) -> None:
         if not isinstance(parent, str) or not parent.strip():
             raise ValueError(f"Package record at index {index}: 'parent' must be a non-empty string")
     else:
-        # Tree-based dependency format
+        # Tree-based dependency format (Param's original schema)
         if "name" not in record:
             raise ValueError(f"Package record at index {index} missing required field 'name'")
         if "version" not in record:
@@ -81,11 +81,16 @@ def _make_node_id(package: str, version: str) -> str:
 
 def build_dependency_graph(manifest: list[dict[str, Any]]) -> nx.DiGraph:
     """
-    Build a directed dependency graph from manifest or dependency list.
+    Build a directed dependency graph from a manifest or dependency list.
 
-    Supports:
-    - Flat manifest: records with 'package', 'version', 'parent', vulnerabilities, npm_metadata
-    - Tree list: records with 'name', 'version', 'dependencies'
+    Args:
+        manifest: List of package records, supporting both:
+            - Flat manifest: records with 'package', 'version', 'parent',
+              'vulnerabilities', and 'npm_metadata'
+            - Tree list: records with 'name', 'version', and 'dependencies'
+
+    Returns:
+        nx.DiGraph: Directed graph with nodes as package@version and edges parent -> child.
     """
     graph = nx.DiGraph()
 
@@ -95,10 +100,10 @@ def build_dependency_graph(manifest: list[dict[str, Any]]) -> nx.DiGraph:
     is_flat_manifest = any("parent" in r for r in manifest if isinstance(r, dict))
 
     if is_flat_manifest:
-        # Add the root node explicitly (represents the GitHub repository)
+        # Add root node explicitly to represent the repository
         graph.add_node("root", name="root", version="", vulnerabilities=[], npm_metadata={}, incomplete=False)
 
-        # First pass: add all nodes from manifest with their attributes
+        # First pass: add all nodes from manifest with attributes
         for idx, record in enumerate(manifest):
             _validate_package_record(record, idx)
 
@@ -122,7 +127,7 @@ def build_dependency_graph(manifest: list[dict[str, Any]]) -> nx.DiGraph:
                     version=version,
                     vulnerabilities=vulnerabilities,
                     npm_metadata=npm_metadata,
-                    incomplete=False
+                    incomplete=False,
                 )
             else:
                 existing = graph.nodes[node_id]
@@ -132,7 +137,7 @@ def build_dependency_graph(manifest: list[dict[str, Any]]) -> nx.DiGraph:
                 graph.nodes[node_id]["npm_metadata"] = npm_metadata
                 graph.nodes[node_id]["incomplete"] = False
 
-        # Second pass: add edges from parent to child
+        # Second pass: add edges parent -> child
         for idx, record in enumerate(manifest):
             package = record["package"].strip()
             version = record["version"].strip()
@@ -148,6 +153,7 @@ def build_dependency_graph(manifest: list[dict[str, Any]]) -> nx.DiGraph:
                 if parent_nodes:
                     parent_node_id = parent_nodes[0]
                 else:
+                    # Sliced parent fallback: create placeholder with incomplete=True
                     parent_node_id = _make_node_id(parent, "unknown")
                     if not graph.has_node(parent_node_id):
                         graph.add_node(
@@ -156,13 +162,13 @@ def build_dependency_graph(manifest: list[dict[str, Any]]) -> nx.DiGraph:
                             version="unknown",
                             vulnerabilities=[],
                             npm_metadata={},
-                            incomplete=True
+                            incomplete=True,
                         )
 
                 graph.add_edge(parent_node_id, child_node_id)
 
     else:
-        # Tree-based dependency format (Param's original implementation)
+        # Tree-based dependency format (Param's original implementation & test suite)
         for idx, record in enumerate(manifest):
             _validate_package_record(record, idx)
 
