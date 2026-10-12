@@ -1,0 +1,375 @@
+"""
+FastAPI backend for DevSecOps tool - Phase 2
+Scans GitHub repositories for package.json dependencies and enriches with threat intelligence.
+"""
+
+import re
+import asyncio
+from typing import Optional
+import httpx
+from fastapi import FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, HttpUrl, field_validator
+
+
+class ScanRequest(BaseModel):
+    """Request model for scanning a GitHub repository."""
+    github_url: str
+
+    @field_validator("github_url")
+    @classmethod
+    def validate_github_url(cls, v: str) -> str:
+        """Validate that the URL is a GitHub repository URL."""
+        github_pattern = r"^https?://github\.com/[\w\-]+/[\w\-\.]+/?$"
+        if not re.match(github_pattern, v.rstrip("/")):
+            raise ValueError("Invalid GitHub repository URL format. Expected: https://github.com/owner/repo")
+        return v.rstrip("/")
+
+
+class PackageInfo(BaseModel):
+    """Model for a single package dependency."""
+    package: str
+    version: str
+
+
+class NPMMaintainer(BaseModel):
+    """Model for NPM package maintainer."""
+    name: Optional[str] = None
+    email: Optional[str] = None
+    username: Optional[str] = None
+
+
+class NPMMetadata(BaseModel):
+    """Model for NPM registry metadata."""
+    maintainers: list[NPMMaintainer] = []
+    times: dict[str, str] = {}
+
+
+class OSVVulnerability(BaseModel):
+    """Model for a single OSV vulnerability."""
+    id: str
+    summary: Optional[str] = None
+    details: Optional[str] = None
+    severity: list[dict] = []
+    affected: list[dict] = []
+    references: list[dict] = []
+    published: Optional[str] = None
+    modified: Optional[str] = None
+
+
+class ManifestEntry(BaseModel):
+    """Model for a single entry in the enriched Manifest."""
+    package: str
+    version: str
+    vulnerabilities: list[OSVVulnerability] = []
+    npm_metadata: NPMMetadata = NPMMetadata()
+
+
+app = FastAPI(
+    title="DevSecOps Scanner API",
+    description="Scan GitHub repositories for package.json dependencies and enrich with threat intelligence",
+    version="2.0.0"
+)
+
+# Configure CORS for local hackathon - allow all origins
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+def convert_to_raw_package_url(github_url: str, branch: str = "main") -> str:
+    """
+    Convert a GitHub repository URL to a raw package.json URL.
+    
+    Args:
+        github_url: Standard GitHub repo URL (e.g., https://github.com/facebook/react)
+        branch: Branch name (default: main)
+    
+    Returns:
+        Raw GitHub content URL for package.json
+    """
+    # Remove trailing slash and extract owner/repo
+    url = github_url.rstrip("/")
+    # Pattern: https://github.com/owner/repo
+    match = re.match(r"https?://github\.com/([\w\-]+)/([\w\-\.]+)", url)
+    if not match:
+        raise ValueError("Invalid GitHub URL format")
+    
+    owner, repo = match.groups()
+    # Remove .git suffix if present
+    repo = repo.replace(".git", "")
+    
+    return f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/package.json"
+
+
+def fetch_package_json(github_url: str) -> dict:
+    """
+    Fetch package.json from GitHub, trying 'main' branch first, then 'master'.
+    
+    Args:
+        github_url: GitHub repository URL
+    
+    Returns:
+        Parsed package.json as dictionary
+    
+    Raises:
+        HTTPException: If package.json not found or other errors
+    """
+    import requests
+    branches = ["main", "master"]
+    last_error = None
+    
+    for branch in branches:
+        raw_url = convert_to_raw_package_url(github_url, branch)
+        try:
+            response = requests.get(raw_url, timeout=10)
+            
+            if response.status_code == 200:
+                return response.json()
+            elif response.status_code == 404:
+                last_error = f"package.json not found on branch '{branch}'"
+                continue
+            else:
+                last_error = f"GitHub returned status {response.status_code} for branch '{branch}'"
+                continue
+                
+        except requests.exceptions.Timeout:
+            last_error = f"Request timeout for branch '{branch}'"
+            continue
+        except requests.exceptions.RequestException as e:
+            last_error = f"Request failed for branch '{branch}': {str(e)}"
+            continue
+        except ValueError as e:
+            # JSON decode error
+            last_error = f"Invalid JSON response for branch '{branch}': {str(e)}"
+            continue
+    
+    # If we get here, both branches failed
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"package.json not found at the root of the repository. Tried branches: main, master. Last error: {last_error}"
+    )
+
+
+def extract_dependencies(package_json: dict) -> list[PackageInfo]:
+    """
+    Extract and merge dependencies and devDependencies from package.json.
+    
+    Args:
+        package_json: Parsed package.json dictionary
+    
+    Returns:
+        List of PackageInfo objects
+    """
+    dependencies = package_json.get("dependencies", {}) or {}
+    dev_dependencies = package_json.get("devDependencies", {}) or {}
+    
+    # Merge both dictionaries (devDependencies will overwrite if same key, but that's fine)
+    all_deps = {**dependencies, **dev_dependencies}
+    
+    # Convert to list of PackageInfo
+    result = [
+        PackageInfo(package=name, version=version)
+        for name, version in all_deps.items()
+    ]
+    
+    return result
+
+
+async def fetch_osv_vulnerabilities(client: httpx.AsyncClient, package_name: str, version: str) -> list[OSVVulnerability]:
+    """
+    Fetch vulnerabilities for a package from OSV API.
+    
+    Args:
+        client: Async HTTP client
+        package_name: Name of the npm package
+        version: Version of the package
+    
+    Returns:
+        List of OSVVulnerability objects (empty if none found or error)
+    """
+    url = "https://api.osv.dev/v1/query"
+    payload = {
+        "package": {
+            "name": package_name,
+            "ecosystem": "npm"
+        },
+        "version": version
+    }
+    
+    try:
+        response = await client.post(url, json=payload, timeout=15.0)
+        
+        if response.status_code == 200:
+            data = response.json()
+            vulns = data.get("vulns", [])
+            
+            result = []
+            for vuln in vulns:
+                # Extract severity info
+                severity = vuln.get("severity", [])
+                
+                result.append(OSVVulnerability(
+                    id=vuln.get("id", ""),
+                    summary=vuln.get("summary"),
+                    details=vuln.get("details"),
+                    severity=severity,
+                    affected=vuln.get("affected", []),
+                    references=vuln.get("references", []),
+                    published=vuln.get("published"),
+                    modified=vuln.get("modified")
+                ))
+            
+            return result
+        else:
+            # OSV API returned non-200, return empty list
+            return []
+            
+    except Exception:
+        # Any error (timeout, network, etc.) - return empty list
+        return []
+
+
+async def fetch_npm_metadata(client: httpx.AsyncClient, package_name: str) -> NPMMetadata:
+    """
+    Fetch package metadata from NPM Registry API.
+    
+    Args:
+        client: Async HTTP client
+        package_name: Name of the npm package
+    
+    Returns:
+        NPMMetadata object with maintainers and times (empty if 404 or error)
+    """
+    url = f"https://registry.npmjs.org/{package_name}"
+    
+    try:
+        response = await client.get(url, timeout=15.0)
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            # Extract maintainers
+            maintainers_raw = data.get("maintainers", [])
+            maintainers = [
+                NPMMaintainer(
+                    name=m.get("name"),
+                    email=m.get("email"),
+                    username=m.get("username")
+                )
+                for m in maintainers_raw
+            ]
+            
+            # Extract times object (publish dates)
+            times = data.get("time", {})
+            
+            return NPMMetadata(
+                maintainers=maintainers,
+                times=times
+            )
+        elif response.status_code == 404:
+            # Package not found - return empty metadata gracefully
+            return NPMMetadata()
+        else:
+            # Other error - return empty metadata
+            return NPMMetadata()
+            
+    except Exception:
+        # Any error (timeout, network, etc.) - return empty metadata
+        return NPMMetadata()
+
+
+async def enrich_package(client: httpx.AsyncClient, pkg: PackageInfo) -> ManifestEntry:
+    """
+    Enrich a single package with OSV vulnerabilities and NPM metadata.
+    Makes both API calls concurrently for performance.
+    
+    Args:
+        client: Async HTTP client
+        pkg: PackageInfo object
+    
+    Returns:
+        ManifestEntry with enriched data
+    """
+    # Run both API calls concurrently
+    osv_task = fetch_osv_vulnerabilities(client, pkg.package, pkg.version)
+    npm_task = fetch_npm_metadata(client, pkg.package)
+    
+    vulnerabilities, npm_metadata = await asyncio.gather(osv_task, npm_task)
+    
+    return ManifestEntry(
+        package=pkg.package,
+        version=pkg.version,
+        vulnerabilities=vulnerabilities,
+        npm_metadata=npm_metadata
+    )
+
+
+@app.post("/api/scan", response_model=list[ManifestEntry])
+async def scan_repository(request: ScanRequest) -> list[ManifestEntry]:
+    """
+    Scan a GitHub repository for package.json dependencies and enrich with threat intelligence.
+    
+    Args:
+        request: ScanRequest containing github_url
+    
+    Returns:
+        List of ManifestEntry objects (The Manifest) - limited to first 5 packages
+    
+    Raises:
+        HTTPException: If package.json not found or invalid
+    """
+    try:
+        # Fetch package.json (tries main then master)
+        package_json = fetch_package_json(request.github_url)
+        
+        # Extract and merge dependencies
+        dependencies = extract_dependencies(package_json)
+        
+        # Limit to first 5 packages to avoid rate limits during testing
+        dependencies = dependencies[:5]
+        
+        # Enrich all packages concurrently using httpx.AsyncClient
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(30.0, connect=10.0),
+            limits=httpx.Limits(max_connections=10, max_keepalive_connections=5)
+        ) as client:
+            # Create enrichment tasks for all packages
+            enrichment_tasks = [
+                enrich_package(client, pkg)
+                for pkg in dependencies
+            ]
+            
+            # Execute all enrichments concurrently
+            manifest = await asyncio.gather(*enrichment_tasks)
+        
+        return manifest
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(e)}"
+        )
+
+
+@app.get("/health")
+async def health_check() -> dict:
+    """Health check endpoint."""
+    return {"status": "healthy", "service": "devsecops-scanner", "version": "2.0.0"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
