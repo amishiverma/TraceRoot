@@ -88,7 +88,7 @@ export const BlockchainProofsView: React.FC = () => {
                   </span>
                   <button
                     onClick={() => handleCopy(proof.id + '-tx', proof.txHash)}
-                    className="p-1 rounded text-stone-400 hover:text-white"
+                    className="p-1.5 rounded-full text-stone-400 hover:text-white"
                   >
                     {copiedId === proof.id + '-tx' ? <Check className="w-3.5 h-3.5 text-lime-400" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
@@ -103,7 +103,7 @@ export const BlockchainProofsView: React.FC = () => {
                   </span>
                   <button
                     onClick={() => handleCopy(proof.id + '-merkle', proof.merkleRoot)}
-                    className="p-1 rounded text-stone-400 hover:text-white"
+                    className="p-1.5 rounded-full text-stone-400 hover:text-white"
                   >
                     {copiedId === proof.id + '-merkle' ? <Check className="w-3.5 h-3.5 text-lime-400" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>

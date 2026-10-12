@@ -1,5 +1,5 @@
 import React from 'react';
-import { Terminal, Eye, BookOpen, Layers, Coins, ExternalLink, Cpu } from 'lucide-react';
+import { Terminal, Eye, BookOpen, Layers, Coins, Cpu } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 
 interface NavbarProps {
@@ -20,82 +20,83 @@ export const Navbar: React.FC<NavbarProps> = ({
   isDashboard = false,
 }) => {
   return (
-    <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-obsidian-950/80 border-b border-white/10 transition-all">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+    <header className="sticky top-4 z-50 w-full px-4 sm:px-6 pointer-events-none transition-all">
+      <div className="relative pointer-events-auto max-w-6xl mx-auto rounded-full bg-white/[0.03] backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.25),0_12px_36px_rgba(0,0,0,0.5)] px-6 py-3 flex items-center justify-between overflow-hidden">
+        
+        {/* Top-edge light reflection catching the rim of real glass */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none" />
         
         {/* Brand / Logo */}
-        <div className="flex items-center space-x-3 cursor-pointer group" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-          <div className="relative flex items-center justify-center w-11 h-11 rounded-xl bg-[#121412] border border-stone-800 transition-transform group-hover:scale-105">
+        <div 
+          className="flex items-center space-x-3 cursor-pointer group select-none relative z-10" 
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        >
+          <div className="relative flex items-center justify-center w-10 h-10 rounded-full bg-white/[0.04] border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] transition-transform group-hover:scale-105">
             <img 
               src={logoImg} 
               alt="TraceRoot Logo" 
-              className="w-7 h-7 object-contain relative z-10" 
+              className="w-6 h-6 object-contain relative z-10" 
             />
-            <div className="absolute -bottom-1 -right-1 w-2 h-2 rounded-full bg-lime-500 border-2 border-[#0b0d0c]" />
+            <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border-2 border-[#121b18]" />
           </div>
 
           <div className="flex flex-col">
             <div className="flex items-center space-x-2">
-              <span className="font-display font-bold text-xl tracking-wide text-white">
+              <span className="font-display font-bold text-lg tracking-wide text-white">
                 TraceRoot
               </span>
             </div>
             <span className="text-[10px] text-stone-400 font-medium tracking-wider flex items-center gap-1 uppercase">
-              <Cpu className="w-2.5 h-2.5 text-lime-500" /> DevSecOps Trust Layer
+              <Cpu className="w-2.5 h-2.5 text-emerald-400" /> DevSecOps Trust Layer
             </span>
           </div>
         </div>
 
         {/* Navigation Links */}
-        <nav className="hidden md:flex items-center space-x-8">
+        <nav className="hidden md:flex items-center space-x-8 relative z-10">
           <button
             onClick={onOpenVR}
-            className="group flex items-center space-x-1.5 text-sm font-medium text-stone-300 hover:text-lime-400 transition-colors"
+            className="group flex items-center space-x-1.5 text-sm font-medium text-stone-300 hover:text-white transition-colors"
           >
-            <Eye className="w-4 h-4 text-stone-400 group-hover:text-lime-400 transition-colors" />
+            <Eye className="w-4 h-4 text-stone-400 group-hover:text-emerald-400 transition-colors" />
             <span>VR/AR View</span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-[#161a15] text-lime-400 border border-lime-800/40">3D</span>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.04] text-emerald-300 border border-white/10">3D</span>
           </button>
 
           <button
             onClick={onOpenEcosystem}
-            className="flex items-center space-x-1.5 text-sm font-medium text-stone-300 hover:text-lime-400 transition-colors"
+            className="group flex items-center space-x-1.5 text-sm font-medium text-stone-300 hover:text-white transition-colors"
           >
-            <Layers className="w-4 h-4 text-stone-400 group-hover:text-lime-400 transition-colors" />
+            <Layers className="w-4 h-4 text-stone-400 group-hover:text-emerald-400 transition-colors" />
             <span>Ecosystem</span>
           </button>
 
           <button
             onClick={onOpenPricing}
-            className="flex items-center space-x-1.5 text-sm font-medium text-stone-300 hover:text-lime-400 transition-colors"
+            className="group flex items-center space-x-1.5 text-sm font-medium text-stone-300 hover:text-white transition-colors"
           >
-            <Coins className="w-4 h-4 text-stone-400 group-hover:text-lime-400 transition-colors" />
+            <Coins className="w-4 h-4 text-stone-400 group-hover:text-emerald-400 transition-colors" />
             <span>Pricing</span>
           </button>
 
           <button
             onClick={onOpenDocs}
-            className="flex items-center space-x-1.5 text-sm font-medium text-stone-300 hover:text-lime-400 transition-colors"
+            className="group flex items-center space-x-1.5 text-sm font-medium text-stone-300 hover:text-white transition-colors"
           >
-            <BookOpen className="w-4 h-4 text-stone-400 group-hover:text-lime-400 transition-colors" />
+            <BookOpen className="w-4 h-4 text-stone-400 group-hover:text-emerald-400 transition-colors" />
             <span>Docs</span>
           </button>
         </nav>
 
-        {/* Right CTA */}
-        <div className="flex items-center space-x-3">
-          <div className="hidden lg:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-[#121412] border border-stone-800 text-xs text-stone-300">
-            <span className="w-2 h-2 rounded-full bg-lime-500" />
-            <span className="font-mono text-[11px] text-stone-300">Polygon Anchor: Active</span>
-          </div>
-
+        {/* Right CTA - Clean, Fully Curved Pill */}
+        <div className="flex items-center relative z-10">
           <button
             onClick={onLaunchConsole}
             id="launch-console-btn"
-            className="relative group overflow-hidden px-5 py-2.5 rounded-xl text-xs tracking-wide text-stone-950 font-bold transition-all duration-200 hover:opacity-95 active:scale-[0.98] bg-gradient-to-r from-lime-600 via-emerald-600 to-stone-700 border border-lime-500/20"
+            className="relative group overflow-hidden px-5 py-2.5 rounded-full text-xs tracking-wide text-stone-950 font-bold transition-all duration-200 hover:opacity-95 active:scale-[0.98] bg-gradient-to-r from-emerald-500 via-teal-400 to-lime-500 border border-white/20 shadow-[0_4px_16px_rgba(16,185,129,0.25)]"
           >
             <span className="relative z-10 flex items-center space-x-2 font-bold text-stone-950">
-              <Terminal className="w-4 h-4 text-stone-950" />
+              <Terminal className="w-3.5 h-3.5 text-stone-950" />
               <span>{isDashboard ? 'Control Center' : 'Launch Console'}</span>
             </span>
           </button>

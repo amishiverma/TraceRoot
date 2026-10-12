@@ -75,7 +75,7 @@ export const ThreatDrawer: React.FC<ThreatDrawerProps> = ({
 
             <button
               onClick={onClose}
-              className="p-2 rounded-xl bg-[#0b0d0c] border border-stone-800 hover:border-stone-700 text-stone-400 hover:text-white transition-colors"
+              className="p-2 rounded-full bg-[#0b0d0c] border border-stone-800 hover:border-stone-700 text-stone-400 hover:text-white transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -209,7 +209,7 @@ export const ThreatDrawer: React.FC<ThreatDrawerProps> = ({
                 </span>
                 <button
                   onClick={handleCopyHash}
-                  className="text-[11px] text-stone-300 hover:text-white px-2.5 py-1 rounded-xl bg-stone-900 border border-stone-800 flex items-center gap-1.5"
+                  className="text-[11px] text-stone-300 hover:text-white px-3 py-1 rounded-full bg-stone-900 border border-stone-800 flex items-center gap-1.5"
                 >
                   {copiedHash ? <Check className="w-3 h-3 text-lime-400" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copiedHash ? 'Copied' : 'Copy'}</span>
@@ -239,7 +239,7 @@ export const ThreatDrawer: React.FC<ThreatDrawerProps> = ({
           <button
             onClick={handleIsolateClick}
             disabled={isolated}
-            className={`w-full py-3.5 rounded-2xl font-sans text-xs font-bold tracking-wider flex items-center justify-center space-x-2 transition-all ${
+            className={`w-full py-3.5 rounded-full font-sans text-xs font-bold tracking-wider flex items-center justify-center space-x-2 transition-all ${
               isolated
                 ? 'bg-[#0b0d0c] text-stone-500 border border-stone-800 cursor-not-allowed'
                 : 'bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white shadow-lg active:scale-95'
@@ -253,7 +253,7 @@ export const ThreatDrawer: React.FC<ThreatDrawerProps> = ({
             <button
               onClick={handleOverrideClick}
               disabled={overridden}
-              className={`py-3 rounded-2xl font-sans text-xs font-semibold tracking-wider flex items-center justify-center space-x-1.5 transition-all ${
+              className={`py-3 rounded-full font-sans text-xs font-semibold tracking-wider flex items-center justify-center space-x-1.5 transition-all ${
                 overridden
                   ? 'bg-[#0b0d0c] text-stone-500 border border-stone-800 cursor-not-allowed'
                   : 'bg-[#0b0d0c] hover:bg-stone-900 text-stone-200 border border-stone-800 hover:border-lime-700/50'
@@ -267,7 +267,7 @@ export const ThreatDrawer: React.FC<ThreatDrawerProps> = ({
               href={`https://github.com/search?q=${encodeURIComponent(node.name)}&type=repositories`}
               target="_blank"
               rel="noopener noreferrer"
-              className="py-3 rounded-2xl font-sans text-xs font-semibold tracking-wider flex items-center justify-center space-x-1.5 bg-[#0b0d0c] hover:bg-stone-900 text-stone-200 border border-stone-800 hover:border-lime-700/50 transition-all"
+              className="py-3 rounded-full font-sans text-xs font-semibold tracking-wider flex items-center justify-center space-x-1.5 bg-[#0b0d0c] hover:bg-stone-900 text-stone-200 border border-stone-800 hover:border-lime-700/50 transition-all"
             >
               <span>GITHUB</span>
               <ExternalLink className="w-3.5 h-3.5 text-lime-400" />

@@ -34,12 +34,12 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({ logs, onSelectRepo
         </div>
 
         {/* Severity filter */}
-        <div className="flex items-center space-x-1 p-1 rounded-xl bg-[#0b0d0c] border border-stone-800 text-xs font-medium self-start sm:self-auto">
+        <div className="flex items-center space-x-1 p-1 rounded-full bg-[#0b0d0c] border border-stone-800 text-xs font-medium self-start sm:self-auto">
           {['all', 'critical', 'medium', 'low'].map((sev) => (
             <button
               key={sev}
               onClick={() => setFilterSeverity(sev)}
-              className={`px-3 py-1 rounded-lg capitalize transition-all ${
+              className={`px-3 py-1 rounded-full capitalize transition-all ${
                 filterSeverity === sev
                   ? sev === 'critical'
                     ? 'bg-rose-500/20 text-rose-300 font-semibold border border-rose-500/40'

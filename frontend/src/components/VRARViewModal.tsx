@@ -56,14 +56,14 @@ export const VRARViewModal: React.FC<VRARViewModalProps> = ({ onClose, onSelectN
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setAngle((a) => a + 30)}
-              className="p-2 rounded-xl bg-[#121412] border border-stone-800 hover:border-lime-700/50 text-stone-300 hover:text-white transition-colors"
+              className="p-2 rounded-full bg-[#121412] border border-stone-800 hover:border-lime-700/50 text-stone-300 hover:text-white transition-colors"
               title="Manual Rotate"
             >
               <RotateCw className="w-4 h-4" />
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl bg-[#121412] border border-stone-800 hover:border-stone-700 text-stone-300 hover:text-white transition-colors"
+              className="p-2 rounded-full bg-[#121412] border border-stone-800 hover:border-stone-700 text-stone-300 hover:text-white transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -164,7 +164,7 @@ export const VRARViewModal: React.FC<VRARViewModalProps> = ({ onClose, onSelectN
           <span className="font-sans">Spatial Orbit Controls: Mouse Drag to Reposition • Scroll to Zoom</span>
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-gradient-to-r from-lime-600 via-emerald-700 to-stone-800 hover:from-lime-500 hover:to-emerald-600 text-stone-100 font-semibold text-xs border border-lime-500/30 transition-all"
+            className="px-5 py-2 rounded-full bg-gradient-to-r from-lime-600 via-emerald-700 to-stone-800 hover:from-lime-500 hover:to-emerald-600 text-stone-100 font-semibold text-xs border border-lime-500/30 transition-all shadow-[0_0_15px_rgba(132,204,22,0.15)]"
           >
             Exit VR View
           </button>

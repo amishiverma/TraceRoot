@@ -102,7 +102,7 @@ export const ScanningModal: React.FC<ScanningModalProps> = ({ repoUrl, onComplet
 
           <button
             onClick={onCancel}
-            className="text-xs font-medium text-stone-400 hover:text-stone-200 px-3 py-1.5 rounded-xl bg-[#0b0d0c] border border-stone-800 hover:border-stone-700 transition-colors"
+            className="text-xs font-medium text-stone-400 hover:text-stone-200 px-4 py-1.5 rounded-full bg-[#0b0d0c] border border-stone-800 hover:border-stone-700 transition-colors"
           >
             Abort Scan
           </button>

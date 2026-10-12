@@ -39,7 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="flex flex-col items-center space-y-6">
         <button
           onClick={onBackToLanding}
-          className="group relative flex items-center justify-center w-11 h-11 rounded-2xl bg-[#121412] border border-stone-800 transition-transform hover:scale-105 active:scale-95"
+          className="group relative flex items-center justify-center w-11 h-11 rounded-full bg-[#121412] border border-stone-800 transition-transform hover:scale-105 active:scale-95"
           title="Return to Landing Page"
         >
           <img 
@@ -63,7 +63,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
                 title={item.label}
-                className={`relative group flex items-center justify-center w-11 h-11 rounded-2xl transition-all duration-200 ${
+                className={`relative group flex items-center justify-center w-11 h-11 rounded-full transition-all duration-200 ${
                   isActive
                     ? 'bg-gradient-to-br from-lime-600 via-emerald-700 to-stone-800 text-stone-100 font-semibold border border-lime-500/30 scale-105'
                     : 'text-stone-400 hover:text-lime-300 hover:bg-[#161915]'
@@ -87,7 +87,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             onClick={onBackToLanding}
             title="Public Landing Mode"
-            className="flex items-center justify-center w-10 h-10 rounded-xl text-stone-500 hover:text-lime-400 hover:bg-[#161915] transition-colors"
+            className="flex items-center justify-center w-10 h-10 rounded-full text-stone-500 hover:text-lime-400 hover:bg-[#161915] transition-colors"
           >
             <LogOut className="w-4 h-4" />
           </button>
