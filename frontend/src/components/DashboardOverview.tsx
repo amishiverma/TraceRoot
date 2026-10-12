@@ -4,13 +4,19 @@ import { StackedCardContainer } from './StackedCardContainer';
 import { PromoCard } from './PromoCard';
 import { MonthlyBarChart } from './MonthlyBarChart';
 import { RecentTransactionsList } from './RecentTransactionsList';
-import { DependencyNode } from '../types';
 
 interface DashboardOverviewProps {
   onScanRepo: () => void;
   onVerifyHash: () => void;
   onCtaClick: () => void;
   onSelectItem: (name: string) => void;
+  scanTxHash?: string | null;
+  stats?: {
+    criticalCount: number;
+    warningCount: number;
+    safeCount: number;
+    totalPackages: number;
+  };
 }
 
 export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
@@ -18,7 +24,14 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   onVerifyHash,
   onCtaClick,
   onSelectItem,
+  scanTxHash,
+  stats,
 }) => {
+  const criticalCount = stats?.criticalCount ?? 0;
+  const warningCount = stats?.warningCount ?? 0;
+  const safeCount = stats?.safeCount ?? 0;
+  const totalPackages = stats?.totalPackages ?? 0;
+
   return (
     <div className="space-y-6 sm:space-y-7 max-w-[1600px] mx-auto">
       
@@ -26,7 +39,12 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-7 items-stretch">
         {/* Top Left: 7 cols */}
         <div className="lg:col-span-7 xl:col-span-8 min-h-[380px]">
-          <MainBalanceChart />
+          <MainBalanceChart 
+            criticalCount={criticalCount}
+            warningCount={warningCount}
+            safeCount={safeCount}
+            totalPackages={totalPackages}
+          />
         </div>
 
         {/* Top Right: 5 cols */}
@@ -34,6 +52,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           <StackedCardContainer
             onScanRepo={onScanRepo}
             onVerifyHash={onVerifyHash}
+            scanTxHash={scanTxHash}
+            stats={stats}
           />
         </div>
       </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Navbar } from './components/Navbar';
 import { LandingHero } from './components/LandingHero';
 import { FeaturesSection } from './components/FeaturesSection';
@@ -21,9 +21,10 @@ import {
   mockActivityLogs, 
   mockNotifications 
 } from './data/mockData';
-import { DependencyNode, ActiveTab } from './types';
-import { Shield } from 'lucide-react';
+import { DependencyNode, ActiveTab, ScanHistoryEntry } from './types';
+import { Shield, AlertCircle, Loader2 } from 'lucide-react';
 import logoImg from './assets/logo.png';
+import { scanRepository, transformBackendResponse, saveScanToHistory, getLocalScanHistory } from './services/api';
 
 export const App: React.FC = () => {
   // Page mode: 'landing' or 'dashboard'
@@ -34,15 +35,25 @@ export const App: React.FC = () => {
 
   // Data states
   const [nodes, setNodes] = useState<DependencyNode[]>(initialNodes);
-  const [edges] = useState(initialEdges);
+  const [edges, setEdges] = useState(initialEdges);
   const [currentRepo, setCurrentRepo] = useState('facebook/react');
   const [selectedNode, setSelectedNode] = useState<DependencyNode | null>(null);
+  const [scanTxHash, setScanTxHash] = useState<string | null>(null);
 
   // Modals
   const [scanningRepo, setScanningRepo] = useState<string | null>(null);
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
   const [showVRModal, setShowVRModal] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [infoModalType, setInfoModalType] = useState<'pricing' | 'ecosystem' | 'docs' | null>(null);
+
+  // History (client-side)
+  const [scanHistory, setScanHistory] = useState<ScanHistoryEntry[]>([]);
+
+  useEffect(() => {
+    setScanHistory(getLocalScanHistory());
+  }, []);
 
   // Keyboard shortcut listener for Command + Space
   useEffect(() => {
@@ -56,45 +67,105 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Initiate scan from input or chips
-  const handleStartScan = (repoUrl: string) => {
-    setScanningRepo(repoUrl);
-  };
-
-  // When scan completes, update repo and jump to Dashboard
-  const handleScanComplete = () => {
-    if (scanningRepo) {
-      const cleanName = scanningRepo.replace('https://github.com/', '').replace('.git', '');
+  // Actual API scan execution
+  const executeScan = useCallback(async (repoUrl: string) => {
+    setScanLoading(true);
+    setScanError(null);
+    
+    try {
+      const backendResponse = await scanRepository(repoUrl);
+      const { nodes: newNodes, edges: newEdges, scanTxHash: txHash } = transformBackendResponse(backendResponse);
+      
+      setNodes(newNodes);
+      setEdges(newEdges);
+      setScanTxHash(txHash);
+      
+      const cleanName = repoUrl.replace('https://github.com/', '').replace('.git', '');
       setCurrentRepo(cleanName || 'facebook/react');
+      
+      // Save to local history
+      const criticalCount = newNodes.filter(n => n.status === 'critical').length;
+      const warningCount = newNodes.filter(n => n.status === 'warning').length;
+      const safeCount = newNodes.filter(n => n.status === 'safe').length;
+      const overallRiskScore = newNodes.length > 0 
+        ? Math.round(newNodes.reduce((sum, n) => sum + n.riskScore, 0) / newNodes.length)
+        : 0;
+      
+      const historyEntry = saveScanToHistory({
+        repoUrl,
+        repoName: cleanName || 'unknown',
+        timestamp: new Date().toISOString(),
+        transactionHash: txHash,
+        totalPackages: newNodes.length,
+        criticalCount,
+        warningCount,
+        safeCount,
+        overallRiskScore,
+      });
+      
+      setScanHistory(prev => [historyEntry, ...prev].slice(0, 50));
+      
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error during scan';
+      setScanError(errorMessage);
+      console.error('Scan failed:', err);
+    } finally {
+      setScanLoading(false);
     }
+  }, []);
+
+  // Initiate scan from input or chips
+  const handleStartScan = useCallback((repoUrl: string) => {
+    setScanningRepo(repoUrl);
+    executeScan(repoUrl);
+  }, [executeScan]);
+
+  // When scan modal completes, navigate to dashboard
+  const handleScanComplete = useCallback(() => {
     setScanningRepo(null);
     setCurrentView('dashboard');
     setActiveTab('overview');
-  };
+  }, []);
+
+  // Cancel scan
+  const handleScanCancel = useCallback(() => {
+    setScanningRepo(null);
+    setScanLoading(false);
+    setScanError(null);
+  }, []);
 
   // Node isolation action
-  const handleIsolateNode = (nodeId: string) => {
+  const handleIsolateNode = useCallback((nodeId: string) => {
     setNodes((prev) =>
-      prev.map((n) => (n.id === nodeId ? { ...n, status: 'warning', riskScore: 35 } : n))
+      prev.map((n) => (n.id === nodeId ? { ...n, status: 'warning' as const, riskScore: 35 } : n))
     );
-  };
+  }, []);
 
   // Node override action
-  const handleOverrideNode = (nodeId: string) => {
+  const handleOverrideNode = useCallback((nodeId: string) => {
     setNodes((prev) =>
-      prev.map((n) => (n.id === nodeId ? { ...n, status: 'safe', riskScore: 15 } : n))
+      prev.map((n) => (n.id === nodeId ? { ...n, status: 'safe' as const, riskScore: 15 } : n))
     );
-  };
+  }, []);
 
   // Trigger package detail from activity or card
-  const handleSelectPackageByName = (name: string) => {
-    const found = nodes.find((n) => n.name.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(n.name.toLowerCase()));
+  const handleSelectPackageByName = useCallback((name: string) => {
+    const found = nodes.find((n) => 
+      n.name.toLowerCase().includes(name.toLowerCase()) || 
+      name.toLowerCase().includes(n.name.toLowerCase())
+    );
     if (found) {
       setSelectedNode(found);
-    } else {
-      setSelectedNode(nodes[1]); // Default to high-risk package (event-stream-patch)
+    } else if (nodes.length > 0) {
+      setSelectedNode(nodes[1]); // Default to high-risk package
     }
-  };
+  }, [nodes]);
+
+  // Calculate stats for dashboard
+  const criticalCount = nodes.filter(n => n.status === 'critical').length;
+  const warningCount = nodes.filter(n => n.status === 'warning').length;
+  const safeCount = nodes.filter(n => n.status === 'safe').length;
+  const totalPackages = nodes.length;
 
   return (
     <div className="min-h-screen bg-[#0b0d0c] text-stone-100 flex flex-col font-sans selection:bg-lime-600/30 selection:text-lime-200 antialiased">
@@ -133,7 +204,7 @@ export const App: React.FC = () => {
                 <div>
                   <span className="font-bold text-white tracking-wider">TraceRoot</span>
                   <span className="text-stone-500 block text-[10px]">
-                    Autonomous DevSecOps &amp; Blockchain Trust Layer
+                    Autonomous DevSecOps & Blockchain Trust Layer
                   </span>
                 </div>
               </div>
@@ -160,9 +231,9 @@ export const App: React.FC = () => {
           </footer>
         </div>
       ) : (
-        /* MAIN SECURITY CONTROL CENTER (DASHBOARD - REDESIGNED PER REFERENCE IMAGE) */
+        /* MAIN SECURITY CONTROL CENTER (DASHBOARD) */
         <div className="flex-1 flex min-h-screen">
-          {/* Left Slim Vertical Sidebar with Glowing Orange Active Pill */}
+          {/* Left Slim Vertical Sidebar */}
           <Sidebar
             activeTab={activeTab}
             onTabChange={(tab) => setActiveTab(tab)}
@@ -171,7 +242,7 @@ export const App: React.FC = () => {
 
           {/* Main Dashboard Column */}
           <div className="flex-1 flex flex-col min-w-0">
-            {/* Top Navigation Bar with Search Pill & Profile */}
+            {/* Top Navigation Bar */}
             <DashboardHeader
               onOpenSearch={() => setShowCommandPalette(true)}
               onBackToLanding={() => setCurrentView('landing')}
@@ -181,13 +252,16 @@ export const App: React.FC = () => {
 
             {/* Main Content Area */}
             <main className="flex-1 p-5 sm:p-7 lg:p-8 overflow-y-auto bg-[#0c0a09] min-h-[calc(100vh-5rem)]">
-              {/* Overview Tab: 3-Column Bento Box matching Reference Image */}
+              
+              {/* Overview Tab */}
               {activeTab === 'overview' && (
                 <DashboardOverview
-                  onScanRepo={() => setScanningRepo(`https://github.com/${currentRepo}`)}
+                  onScanRepo={() => handleStartScan(`https://github.com/${currentRepo}`)}
                   onVerifyHash={() => setActiveTab('blockchain')}
                   onCtaClick={() => setInfoModalType('pricing')}
                   onSelectItem={handleSelectPackageByName}
+                  scanTxHash={scanTxHash}
+                  stats={{ criticalCount, warningCount, safeCount, totalPackages }}
                 />
               )}
 
@@ -197,7 +271,7 @@ export const App: React.FC = () => {
                   <div className="flex items-center justify-between pb-3 border-b border-white/5">
                     <div>
                       <h2 className="text-2xl font-sans font-bold text-stone-100">
-                        Dependency Graph &amp; DAG Topology
+                        Dependency Graph & DAG Topology
                       </h2>
                       <p className="text-xs text-stone-400 font-mono mt-0.5">
                         Interactive supply chain visualization for {currentRepo}
@@ -220,14 +294,14 @@ export const App: React.FC = () => {
                   <div className="flex items-center justify-between pb-3 border-b border-white/5">
                     <div>
                       <h2 className="text-2xl font-sans font-bold text-stone-100">
-                        Threat Analytics &amp; Risk Metrics
+                        Threat Analytics & Risk Metrics
                       </h2>
                       <p className="text-xs text-stone-400 font-mono mt-0.5">
                         Time-series anomaly progressions, dormant code spikes, and risk index
                       </p>
                     </div>
                   </div>
-                  <AnalyticsChart />
+                  <AnalyticsChart history={scanHistory} />
                 </div>
               )}
 
@@ -244,7 +318,7 @@ export const App: React.FC = () => {
               {/* Blockchain Proofs Tab */}
               {activeTab === 'blockchain' && (
                 <div className="max-w-[1600px] mx-auto">
-                  <BlockchainProofsView />
+                  <BlockchainProofsView scanTxHash={scanTxHash} />
                 </div>
               )}
 
@@ -259,7 +333,7 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* INTERACTIVE THREAT DRAWER (Triggered on Node / Transaction Click) */}
+      {/* INTERACTIVE THREAT DRAWER */}
       <ThreatDrawer
         node={selectedNode}
         onClose={() => setSelectedNode(null)}
@@ -267,12 +341,14 @@ export const App: React.FC = () => {
         onOverride={handleOverrideNode}
       />
 
-      {/* HUD SCANNING SIMULATION MODAL */}
+      {/* HUD SCANNING SIMULATION MODAL - Now with real API integration */}
       {scanningRepo && (
         <ScanningModal
           repoUrl={scanningRepo}
           onComplete={handleScanComplete}
-          onCancel={() => setScanningRepo(null)}
+          onCancel={handleScanCancel}
+          isLoading={scanLoading}
+          error={scanError}
         />
       )}
 

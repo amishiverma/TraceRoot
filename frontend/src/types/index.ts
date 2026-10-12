@@ -15,12 +15,48 @@ export interface DependencyNode {
   y?: number;
   status: 'safe' | 'warning' | 'critical';
   polygonHash?: string;
+
+  // ===== NEW FIELDS FROM BACKEND =====
+  riskFlags?: string[];
+  parentPackage?: string;
+  npmTimes?: NpmTimes;
+  vulnerabilities?: Vulnerability[];
+  maintainers?: Maintainer[];
+  dependencyDepth?: number;
+  dependencyPath?: string[];
 }
 
 export interface DependencyEdge {
   source: string;
   target: string;
   relationship: 'depends' | 'imports' | 'bundles' | 'transitive';
+}
+
+export interface Vulnerability {
+  id: string;
+  cve_id?: string;
+  title?: string;
+  description?: string;
+  cvss_score?: number;
+  severity?: 'critical' | 'high' | 'medium' | 'low';
+  cwe?: string[];
+  fixed_version?: string;
+  references?: string[];
+  published_at?: string;
+  modified_at?: string;
+}
+
+export interface Maintainer {
+  name: string;
+  email?: string;
+  github?: string;
+  username?: string;
+}
+
+export interface NpmTimes {
+  created: string;
+  modified: string;
+  [version: string]: string;
 }
 
 export interface ActivityLog {
@@ -57,6 +93,19 @@ export interface NotificationItem {
   timestamp: string;
   severity: 'critical' | 'warning' | 'info';
   read: boolean;
+}
+
+export interface ScanHistoryEntry {
+  id: string;
+  repoUrl: string;
+  repoName: string;
+  timestamp: string;
+  transactionHash: string;
+  totalPackages: number;
+  criticalCount: number;
+  warningCount: number;
+  safeCount: number;
+  overallRiskScore: number;
 }
 
 export type ActiveTab = 'overview' | 'graph' | 'analytics' | 'vulnerabilities' | 'blockchain' | 'settings';
