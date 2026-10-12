@@ -10,7 +10,8 @@ import httpx
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, HttpUrl, field_validator
-
+from blockchain import anchor_manifest
+from fastapi.encoders import jsonable_encoder
 
 class ScanRequest(BaseModel):
     """Request model for scanning a GitHub repository."""
@@ -309,8 +310,8 @@ async def enrich_package(client: httpx.AsyncClient, pkg: PackageInfo) -> Manifes
     )
 
 
-@app.post("/api/scan", response_model=list[ManifestEntry])
-async def scan_repository(request: ScanRequest) -> list[ManifestEntry]:
+@app.post("/api/scan")
+async def scan_repository(request: ScanRequest):
     """
     Scan a GitHub repository for package.json dependencies and enrich with threat intelligence.
     
@@ -347,7 +348,17 @@ async def scan_repository(request: ScanRequest) -> list[ManifestEntry]:
             # Execute all enrichments concurrently
             manifest = await asyncio.gather(*enrichment_tasks)
         
-        return manifest
+        # 1. Convert the custom Pydantic objects into standard dictionaries safely
+        safe_manifest = jsonable_encoder(manifest)
+
+        # 2. Get the blockchain hash using the safe data
+        tx_hash = anchor_manifest(safe_manifest)
+        
+        # 3. Return BOTH the hash and the manifest
+        return {
+            "transaction_hash": tx_hash,
+            "dependencies": safe_manifest
+        }
         
     except HTTPException:
         # Re-raise HTTP exceptions as-is
