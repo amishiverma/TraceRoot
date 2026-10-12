@@ -1,5 +1,5 @@
 """
-Heuristic risk assessment package for DevSecOps scanner.
+Heuristic and pipeline risk assessment package for DevSecOps scanner.
 """
 
 from app.risk.heuristic_rules import (
@@ -13,6 +13,9 @@ from app.risk.assessment import (
     assess_package_risk,
     assess_all_packages,
     assess_all_risks,
+    calculate_impact,
+    calculate_heuristics,
+    predict_ml_risk,
 )
 
 __all__ = [
@@ -24,4 +27,7 @@ __all__ = [
     "assess_package_risk",
     "assess_all_packages",
     "assess_all_risks",
+    "calculate_impact",
+    "calculate_heuristics",
+    "predict_ml_risk",
 ]

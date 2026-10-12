@@ -1,22 +1,27 @@
 """
 Risk assessment orchestration layer.
 
-Combines all heuristic signal evaluators (from heuristic_rules.py) into a
-single per-package RiskAssessment object and a batch assess_all_packages helper.
+Provides both:
+1. Production pipeline risk scoring functions used by main.py:
+   - assess_all_risks(graph, manifest)
+   - calculate_impact(graph, node_name)
+   - calculate_heuristics(pkg_data)
+   - predict_ml_risk(pkg_data)
 
-Key design decisions:
-- RiskAssessment is a value object (no mutation after construction).
-- Score is capped at 100; each signal contributes its own points.
-- assess_package_risk accepts raw node_data dicts so it works both on
-  graph node data and on deserialized API response dicts.
-- assess_all_packages validates input and raises ValueError on malformed
-  records so callers get a clear failure signal early.
+2. Comprehensive heuristic risk evaluation classes/functions for unit & integration testing:
+   - RiskAssessment
+   - assess_package_risk(node_data, vulnerabilities, historical_maintainers)
+   - assess_all_packages(api_response, vulnerabilities_map, historical_maintainers_map)
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import random
+from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
+
+import networkx as nx
 
 from app.risk.heuristic_rules import (
     SignalResult,
@@ -26,9 +31,72 @@ from app.risk.heuristic_rules import (
 )
 
 
-# ---------------------------------------------------------------------------
-# RiskAssessment value object
-# ---------------------------------------------------------------------------
+# ===========================================================================
+# 1. Pipeline Risk Scoring (used by main.py)
+# ===========================================================================
+
+
+def calculate_impact(graph: nx.DiGraph, node_name: str) -> int:
+    """Calculate graph centrality impact score."""
+    try:
+        centrality = nx.betweenness_centrality(graph, normalized=True)
+        cent = centrality.get(node_name, 0)
+        return min(int(cent * 10000), 100)
+    except Exception:
+        return 0
+
+
+def calculate_heuristics(pkg_data: dict[str, Any]) -> tuple[int, list[str]]:
+    """Calculate heuristic score and flags from package data."""
+    score = 0
+    flags = []
+    if pkg_data.get("vulnerabilities"):
+        score += 100
+        flags.append("Known CVEs found")
+
+    npm_meta = pkg_data.get("npm_metadata") or {}
+    try:
+        times = npm_meta.get("times", {})
+        if "modified" in times:
+            mod_date_str = times["modified"].split("T")[0]
+            mod_date = datetime.strptime(mod_date_str, "%Y-%m-%d")
+            if (datetime.now() - mod_date).days > 365:
+                score += 50
+                flags.append("Package dormant for > 1 year")
+    except Exception:
+        pass
+
+    maintainers = npm_meta.get("maintainers", [])
+    if isinstance(maintainers, list) and len(maintainers) < 2:
+        score += 20
+        flags.append("Low maintainer count")
+
+    return min(score, 100), flags
+
+
+def predict_ml_risk(pkg_data: dict[str, Any]) -> int:
+    """Predict risk using ML model (stub / random baseline)."""
+    return random.randint(10, 40)
+
+
+def assess_all_risks(graph: nx.DiGraph, manifest: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    Score risks across all packages in the manifest using ensemble formula.
+    Injected directly into each package dict for API response and blockchain anchoring.
+    """
+    for pkg in manifest:
+        impact = calculate_impact(graph, pkg.get("package"))
+        heuristics, flags = calculate_heuristics(pkg)
+        ml_score = predict_ml_risk(pkg)
+        final_score = int((0.50 * heuristics) + (0.30 * impact) + (0.20 * ml_score))
+        pkg["final_risk_score"] = min(final_score, 100)
+        pkg["risk_flags"] = flags
+    return manifest
+
+
+# ===========================================================================
+# 2. Detailed Heuristic Risk Assessment (for verification and testing)
+# ===========================================================================
 
 
 @dataclass(frozen=True)
@@ -46,12 +114,10 @@ class RiskAssessment:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise to a plain dict for JSON output."""
-        # signals are already dicts; build evidence index from them
         all_evidence: dict[str, Any] = {}
         for sig in self.signals:
             all_evidence[sig["rule"].lower()] = sig.get("evidence", {})
 
-        # Aggregate recommended next action
         unknowns = [s["rule"] for s in self.signals if s["status"] == "unknown"]
         if unknowns:
             action = (
@@ -71,7 +137,7 @@ class RiskAssessment:
             "resolved_version": self.resolved_version,
             "version_resolution_status": self.version_resolution_status,
             "heuristic_risk_score": self.heuristic_risk_score,
-            "signals": list(self.signals),  # already dicts
+            "signals": list(self.signals),
             "supporting_advisory_ids": list(self.supporting_advisory_ids),
             "assessment_complete": self.assessment_complete,
             "evidence": all_evidence,
@@ -79,61 +145,30 @@ class RiskAssessment:
         }
 
 
-# ---------------------------------------------------------------------------
-# Per-package assessment
-# ---------------------------------------------------------------------------
-
-
 def assess_package_risk(
     node_data: dict[str, Any],
     vulnerabilities: list[dict[str, Any]] | None = None,
     historical_maintainers: list[dict[str, Any]] | None = None,
 ) -> RiskAssessment:
-    """
-    Run all three heuristic signals against a single package node and return
-    a RiskAssessment.
-
-    Args:
-        node_data: Node attribute dict from the dependency graph (or an
-                   equivalent dict with the same keys).
-        vulnerabilities: Full OSV advisory objects fetched for this package.
-                         Pass an empty list when there are none, or None to
-                         let the evaluator use advisory_ids embedded in
-                         node_data (which treats it as "no full advisory data").
-        historical_maintainers: Snapshotted maintainer list for comparison.
-                                Pass None when unavailable (yields "unknown").
-
-    Returns:
-        A frozen RiskAssessment instance.
-    """
+    """Run all three heuristic signals against a package node."""
     if vulnerabilities is None:
         vulnerabilities = []
 
-    # --- Signal 1: Known vulnerability ---
     vuln_signal = evaluate_vulnerability_signal(node_data, vulnerabilities)
-
-    # --- Signal 2: Extended dormancy ---
     dormancy_signal = evaluate_dormancy_signal(node_data)
-
-    # --- Signal 3: Maintainer change ---
     maintainer_signal = evaluate_maintainer_change_signal(node_data, historical_maintainers)
 
-    # Serialise signals to dicts immediately so callers can subscript them directly
     signal_dicts = tuple(s.to_dict() for s in (vuln_signal, dormancy_signal, maintainer_signal))
 
-    # --- Score aggregation (cap at 100) ---
     raw_score = sum(s.points for s in (vuln_signal, dormancy_signal, maintainer_signal))
     final_score = min(raw_score, 100)
 
-    # --- Version metadata ---
     version_precision = node_data.get("version_precision", "unknown")
     supplied_version = node_data.get("version", "")
     resolved_version = supplied_version if version_precision == "resolved" else None
 
-    # --- Completeness flag: all signals must be non-unknown ---
     assessment_complete = all(s["status"] != "unknown" for s in signal_dicts)
 
-    # --- Advisory IDs from confirmed vuln signal evidence ---
     advisory_ids: list[str] = []
     if vuln_signal.status == "confirmed":
         for adv in vuln_signal.evidence.get("confirmed_advisories", []):
@@ -153,33 +188,12 @@ def assess_package_risk(
     )
 
 
-# ---------------------------------------------------------------------------
-# Batch assessment
-# ---------------------------------------------------------------------------
-
-
 def assess_all_packages(
     api_response: dict[str, Any],
     vulnerabilities_map: dict[str, list[dict[str, Any]]] | None = None,
     historical_maintainers_map: dict[str, list[dict[str, Any]]] | None = None,
 ) -> list[RiskAssessment]:
-    """
-    Assess risk for all packages in a /scan API response.
-
-    Args:
-        api_response: The dict returned by /scan, expected to contain a
-                      ``dependencies`` key with a list of package dicts.
-        vulnerabilities_map: Mapping of package_name -> OSV advisory list.
-                             Pass None to assess with no advisory data.
-        historical_maintainers_map: Mapping of package_name -> historical
-                                    maintainer list. Pass None when unavailable.
-
-    Returns:
-        List of RiskAssessment objects, one per dependency record.
-
-    Raises:
-        ValueError: If a dependency record is missing the required 'package' field.
-    """
+    """Assess risk for all packages in a /scan API response."""
     dependencies = api_response.get("dependencies", [])
     assessments: list[RiskAssessment] = []
 
@@ -190,44 +204,21 @@ def assess_all_packages(
             )
 
         pkg_name = record["package"]
-
-        # Build a node_data dict from the API response record
         node_data = _api_record_to_node_data(record)
-
         vulns = (vulnerabilities_map or {}).get(pkg_name, [])
         historical = (historical_maintainers_map or {}).get(pkg_name, None)
-
         assessments.append(assess_package_risk(node_data, vulns, historical))
 
     return assessments
 
 
-# ---------------------------------------------------------------------------
-# Internal adapter
-# ---------------------------------------------------------------------------
-
-
 def _api_record_to_node_data(record: dict[str, Any]) -> dict[str, Any]:
-    """
-    Convert an API response dependency record into the node_data shape
-    expected by the heuristic evaluators.
-
-    API record keys:      node_data keys:
-      package           -> name
-      version           -> version
-      vulnerabilities   -> vulnerability_advisory_ids (extracted ids),
-                           vulnerability_count
-      npm_metadata      -> npm_maintainers, npm_times
-    """
+    """Convert an API response dependency record into node_data shape."""
     npm_meta = record.get("npm_metadata") or {}
-
-    # Extract vulnerability advisory IDs from raw vulnerability list
     raw_vulns = record.get("vulnerabilities") or []
     advisory_ids = [v.get("id") for v in raw_vulns if v.get("id")]
 
     version = record.get("version", "")
-    # Determine version precision: if it starts with ^, ~, >=, <=, or
-    # contains a space or *, treat it as a range
     from app.graph.builder import _is_version_range
     precision = "range" if _is_version_range(version) else "resolved"
 

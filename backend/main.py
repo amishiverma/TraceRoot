@@ -2,7 +2,8 @@
 FastAPI backend for DevSecOps tool - Phase 2
 Scans GitHub repositories for package.json dependencies and enriches with threat intelligence.
 """
-
+from dotenv import load_dotenv
+load_dotenv() # This loads the variables from .env into your system environment
 import re
 import asyncio
 from typing import Any, Optional
@@ -355,20 +356,23 @@ async def scan_repository(request: ScanRequest):
         safe_manifest = jsonable_encoder(manifest)
 
         # ---> ADD THIS BLOCK TO TEST PARAM'S GRAPH <---
-        # ---> RUN PARAM'S GRAPH AND AI RISK SCORER <---
+       # ---> RUN PARAM'S GRAPH AND AI RISK SCORER <---
         try:
             # 1. Build Param's Graph
             graph = build_dependency_graph(safe_manifest)
             
-            # 2. RUN PARAM'S AI RISK SCORER! (This updates the data with scores)
+            # 2. RUN PARAM'S AI RISK SCORER!
             safe_manifest = assess_all_risks(graph, safe_manifest)
             
-            # Print success to terminal
-            print(f"🚀 SUCCESS! AI Risk Scores calculated for {graph.number_of_nodes()} packages.")
+            # --- THE GHOST DETECTOR (ADD THESE 2 LINES) ---
+            first_pkg = safe_manifest[0]
+            print(f"👻 GHOST DETECTOR: First package is {first_pkg['package']} with Score: {first_pkg.get('final_risk_score', 'MISSING!')}")
+            # ----------------------------------------------
+            
+            print(f"🚀 SUCCESS! AI Risk Scores calculated.")
         except Exception as e:
             print(f"❌ AI/GRAPH ERROR: {e}")
         # ---------------------------------------------
-
         # 2. Get the blockchain hash using the safe data
         tx_hash = anchor_manifest(safe_manifest)
         
