@@ -5,13 +5,15 @@ Scans GitHub repositories for package.json dependencies and enriches with threat
 
 import re
 import asyncio
-from typing import Optional
+from typing import Any, Optional
 import httpx
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, HttpUrl, field_validator
 from blockchain import anchor_manifest
 from fastapi.encoders import jsonable_encoder
+from app.graph.builder import build_dependency_graph
+
 
 class ScanRequest(BaseModel):
     """Request model for scanning a GitHub repository."""
@@ -28,9 +30,9 @@ class ScanRequest(BaseModel):
 
 
 class PackageInfo(BaseModel):
-    """Model for a single package dependency."""
     package: str
     version: str
+    parent: str = "root"  # <--- Add this exact line!
 
 
 class NPMMaintainer(BaseModel):
@@ -59,12 +61,11 @@ class OSVVulnerability(BaseModel):
 
 
 class ManifestEntry(BaseModel):
-    """Model for a single entry in the enriched Manifest."""
     package: str
     version: str
-    vulnerabilities: list[OSVVulnerability] = []
-    npm_metadata: NPMMetadata = NPMMetadata()
-
+    parent: str = "root"
+    vulnerabilities: Any   # <--- Changed to Any
+    npm_metadata: Any      # <--- Changed to Any
 
 app = FastAPI(
     title="DevSecOps Scanner API",
@@ -305,6 +306,7 @@ async def enrich_package(client: httpx.AsyncClient, pkg: PackageInfo) -> Manifes
     return ManifestEntry(
         package=pkg.package,
         version=pkg.version,
+        parent=pkg.parent,      # <--- Add this line!
         vulnerabilities=vulnerabilities,
         npm_metadata=npm_metadata
     )
@@ -348,8 +350,19 @@ async def scan_repository(request: ScanRequest):
             # Execute all enrichments concurrently
             manifest = await asyncio.gather(*enrichment_tasks)
         
-        # 1. Convert the custom Pydantic objects into standard dictionaries safely
+       # 1. Convert the custom Pydantic objects into standard dictionaries safely
         safe_manifest = jsonable_encoder(manifest)
+
+        # ---> ADD THIS BLOCK TO TEST PARAM'S GRAPH <---
+        try:
+            # Pass your data into Param's graph engine
+            graph = build_dependency_graph(safe_manifest)
+            
+            # Print to your terminal to prove it worked!
+            print(f"🚀 SUCCESS! Graph built with {graph.number_of_nodes()} Nodes and {graph.number_of_edges()} Edges.")
+        except Exception as e:
+            print(f"❌ GRAPH ERROR: {e}")
+        # ---------------------------------------------
 
         # 2. Get the blockchain hash using the safe data
         tx_hash = anchor_manifest(safe_manifest)
