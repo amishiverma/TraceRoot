@@ -13,6 +13,7 @@ from pydantic import BaseModel, HttpUrl, field_validator
 from blockchain import anchor_manifest
 from fastapi.encoders import jsonable_encoder
 from app.graph.builder import build_dependency_graph
+from app.risk.assessment import assess_all_risks
 
 
 class ScanRequest(BaseModel):
@@ -354,14 +355,18 @@ async def scan_repository(request: ScanRequest):
         safe_manifest = jsonable_encoder(manifest)
 
         # ---> ADD THIS BLOCK TO TEST PARAM'S GRAPH <---
+        # ---> RUN PARAM'S GRAPH AND AI RISK SCORER <---
         try:
-            # Pass your data into Param's graph engine
+            # 1. Build Param's Graph
             graph = build_dependency_graph(safe_manifest)
             
-            # Print to your terminal to prove it worked!
-            print(f"🚀 SUCCESS! Graph built with {graph.number_of_nodes()} Nodes and {graph.number_of_edges()} Edges.")
+            # 2. RUN PARAM'S AI RISK SCORER! (This updates the data with scores)
+            safe_manifest = assess_all_risks(graph, safe_manifest)
+            
+            # Print success to terminal
+            print(f"🚀 SUCCESS! AI Risk Scores calculated for {graph.number_of_nodes()} packages.")
         except Exception as e:
-            print(f"❌ GRAPH ERROR: {e}")
+            print(f"❌ AI/GRAPH ERROR: {e}")
         # ---------------------------------------------
 
         # 2. Get the blockchain hash using the safe data

@@ -12,6 +12,7 @@ from app.risk.assessment import (
     RiskAssessment,
     assess_package_risk,
     assess_all_packages,
+    assess_all_risks,
 )
 
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "RiskAssessment",
     "assess_package_risk",
     "assess_all_packages",
+    "assess_all_risks",
 ]

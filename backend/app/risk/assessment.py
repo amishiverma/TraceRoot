@@ -154,3 +154,73 @@ def assess_all_packages(
         assessments.append(assessment)
 
     return assessments
+
+
+def assess_all_risks(
+    arg1: Any,
+    arg2: Any = None,
+) -> list[dict[str, Any]]:
+    """
+    Assess risk for all packages in the manifest using graph metrics and heuristic rules.
+    Supports both assess_all_risks(graph, manifest) and assess_all_risks(manifest, graph).
+    Mutates manifest packages in-place adding final_risk_score, risk_flags, and recommendations.
+    """
+    import networkx as nx
+    from app.graph.builder import _is_version_range
+
+    if isinstance(arg1, list):
+        manifest = arg1
+        graph = arg2
+    else:
+        graph = arg1
+        manifest = arg2 if isinstance(arg2, list) else []
+
+    if not manifest:
+        return manifest
+
+    # Calculate betweenness centrality if graph is provided
+    impact_scores: dict[str, int] = {}
+    if graph and hasattr(graph, "nodes"):
+        try:
+            centrality = nx.betweenness_centrality(graph, normalized=True)
+            for node, cent in centrality.items():
+                impact_scores[node] = min(int(cent * 10000), 100)
+        except Exception:
+            pass
+
+    for pkg in manifest:
+        pkg_name = pkg.get("package") or pkg.get("name", "")
+        version = pkg.get("version", "")
+        node_id = f"{pkg_name}@{version}"
+
+        node_data = {
+            "name": pkg_name,
+            "version": version,
+            "version_precision": "resolved" if not _is_version_range(version) else "range",
+            "vulnerability_count": len(pkg.get("vulnerabilities", [])),
+            "vulnerability_advisory_ids": [v.get("id", "") for v in pkg.get("vulnerabilities", []) if v.get("id")],
+            "npm_maintainers": (pkg.get("npm_metadata", {}) or {}).get("maintainers", []),
+            "npm_times": (pkg.get("npm_metadata", {}) or {}).get("times", {}),
+            "incomplete": False,
+        }
+
+        vulns = pkg.get("vulnerabilities", [])
+        assessment = assess_package_risk(node_data, vulns)
+
+        impact = impact_scores.get(node_id, impact_scores.get(pkg_name, 0))
+        h_score = assessment.heuristic_risk_score
+
+        final_score = int(round(0.70 * h_score + 0.30 * impact))
+        final_score = max(0, min(final_score, 100))
+
+        flags = [s["description"] for s in assessment.signals if s.get("status") == "confirmed"]
+        if impact > 50:
+            flags.append(f"High graph centrality impact ({impact}/100)")
+
+        pkg["final_risk_score"] = final_score
+        pkg["risk_flags"] = flags
+        pkg["heuristic_risk_score"] = h_score
+        pkg["impact_score"] = impact
+        pkg["recommended_action"] = assessment.recommended_next_action
+
+    return manifest
