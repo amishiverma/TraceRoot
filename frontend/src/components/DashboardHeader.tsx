@@ -32,7 +32,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
   return (
     <header className="h-20 w-full bg-[#0b0d0c]/95 backdrop-blur-xl border-b border-stone-800/80 px-6 sm:px-8 flex items-center justify-between z-20 sticky top-0">
-      
+
       {/* Left: Search Bar with shortcut */}
       <div className="flex-1 max-w-md">
         <div
@@ -60,7 +60,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
       {/* Right: System Utility Icons & Profile Dropdown */}
       <div className="flex items-center space-x-3 sm:space-x-4">
-        
+
         {/* Refresh Utility Icon */}
         <button
           onClick={handleRefresh}

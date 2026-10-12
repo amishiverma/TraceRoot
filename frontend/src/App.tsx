@@ -15,6 +15,7 @@ import { ScanningModal } from './components/ScanningModal';
 import { VRARViewModal } from './components/VRARViewModal';
 import { CommandPalette } from './components/CommandPalette';
 import { InfoModals } from './components/InfoModals';
+import { AuroraBackground } from './components/AuroraBackground';
 import { 
   initialNodes, 
   initialEdges, 
@@ -233,7 +234,10 @@ export const App: React.FC = () => {
         </div>
       ) : (
         /* MAIN SECURITY CONTROL CENTER (DASHBOARD) */
-        <div className="flex-1 flex min-h-screen">
+        <div className="flex-1 flex min-h-screen relative overflow-hidden bg-[#0b0d0c]">
+          {/* Ambient Cinematic Aurora Gradient Motion (Video + Fluid Mesh) */}
+          <AuroraBackground opacity={0.75} />
+
           {/* Left Slim Vertical Sidebar */}
           <Sidebar
             activeTab={activeTab}
@@ -242,7 +246,7 @@ export const App: React.FC = () => {
           />
 
           {/* Main Dashboard Column */}
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col min-w-0 relative z-10">
             {/* Top Navigation Bar */}
             <DashboardHeader
               onOpenSearch={() => setShowCommandPalette(true)}
@@ -252,7 +256,7 @@ export const App: React.FC = () => {
             />
 
             {/* Main Content Area */}
-            <main className="flex-1 p-5 sm:p-7 lg:p-8 overflow-y-auto bg-[#0c0a09] min-h-[calc(100vh-5rem)]">
+            <main className="flex-1 p-5 sm:p-7 lg:p-8 overflow-y-auto bg-transparent min-h-[calc(100vh-5rem)]">
               {/* Overview Tab: 3-Row Bento Box */}
               {activeTab === 'overview' && (
                 <DashboardOverview
