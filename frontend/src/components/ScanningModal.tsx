@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { ShieldAlert, Terminal, CheckCircle2, Cpu, Lock, Sparkles, Loader2, ArrowRight } from 'lucide-react';
+import { ShieldAlert, Terminal, CheckCircle2, Cpu, Lock, Sparkles, Loader2, ArrowRight, AlertCircle, XCircle } from 'lucide-react';
 
 interface ScanningModalProps {
   repoUrl: string;
   onComplete: () => void;
   onCancel: () => void;
+  isLoading?: boolean;
+  error?: string | null;
 }
 
-export const ScanningModal: React.FC<ScanningModalProps> = ({ repoUrl, onComplete, onCancel }) => {
+export const ScanningModal: React.FC<ScanningModalProps> = ({ repoUrl, onComplete, onCancel, isLoading = false, error = null }) => {
   const [progress, setProgress] = useState(15);
   const [currentStep, setCurrentStep] = useState(0);
   const [logs, setLogs] = useState<string[]>([
@@ -23,14 +25,17 @@ export const ScanningModal: React.FC<ScanningModalProps> = ({ repoUrl, onComplet
     { title: 'Polygon Blockchain Anchoring', icon: Lock },
   ];
 
+  // Simulation timers (for visual feedback during real API call)
   useEffect(() => {
+    if (!isLoading) return;
+
     const timer1 = setTimeout(() => {
       setProgress(38);
       setCurrentStep(1);
       setLogs((prev) => [
         ...prev,
-        '[DAG] Parsed 2,847 total package nodes across 7 transitive dependency tiers.',
-        '[GRAPH] Generating dynamic adjacency matrix for cyclic vulnerability detection...',
+        '[DAG] Parsed dependency tree across transitive tiers...',
+        '[GRAPH] Building adjacency matrix for cyclic vulnerability detection...',
       ]);
     }, 900);
 
@@ -49,33 +54,83 @@ export const ScanningModal: React.FC<ScanningModalProps> = ({ repoUrl, onComplet
       setCurrentStep(3);
       setLogs((prev) => [
         ...prev,
-        '[OSV] Cross-matched with OSV.dev: CVE-2024-3094, GHSA-x84v-xcm2-472w.',
+        '[OSV] Cross-matching with OSV.dev & GitHub Advisory Database...',
         '[HASH] Constructing SHA-256 Merkle tree state digest for Polygon commit...',
       ]);
     }, 2700);
 
     const timer4 = setTimeout(() => {
-      setProgress(100);
+      setProgress(95);
       setCurrentStep(4);
       setLogs((prev) => [
         ...prev,
-        '[BLOCKCHAIN] Anchored to Polygon Mainnet. Tx: 0x8f4d92a39b4012948123acbbef01293e8f49e79b',
-        '[SUCCESS] Security Control Center is primed and ready.',
+        '[BLOCKCHAIN] Submitting anchor transaction to Polygon Mainnet...',
+        '[WAIT] Awaiting block finality confirmation...',
       ]);
     }, 3600);
-
-    const timer5 = setTimeout(() => {
-      onComplete();
-    }, 4500);
 
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
       clearTimeout(timer3);
       clearTimeout(timer4);
-      clearTimeout(timer5);
     };
-  }, [repoUrl, onComplete]);
+  }, [isLoading, repoUrl]);
+
+  // When real API completes (isLoading goes false and no error), finish the animation
+  useEffect(() => {
+    if (isLoading === false && progress > 0 && !error) {
+      setProgress(100);
+      setLogs((prev) => [
+        ...prev,
+        '[BLOCKCHAIN] Anchored to Polygon Mainnet. Transaction confirmed.',
+        '[SUCCESS] Security Control Center is primed and ready.',
+      ]);
+      const timer = setTimeout(() => onComplete(), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, error, onComplete, progress]);
+
+  // Error state rendering
+  if (error && !isLoading) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/85 backdrop-blur-md">
+        <div className="relative w-full max-w-md rounded-2xl bg-[#121412] border border-rose-500/30 p-6 sm:p-8">
+          <div className="flex items-center justify-between pb-6 border-b border-stone-800">
+            <div className="flex items-center space-x-3">
+              <div className="relative w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center">
+                <XCircle className="w-5 h-5 text-rose-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-display font-bold text-lg text-stone-100">Scan Failed</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                    ERROR
+                  </span>
+                </div>
+                <p className="text-xs font-mono text-stone-400 truncate max-w-md mt-0.5">Target: {repoUrl}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="py-6">
+            <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 p-4 font-mono text-xs text-rose-300">
+              {error}
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={onCancel}
+              className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 text-rose-400 hover:text-rose-300 text-xs font-medium transition-colors"
+            >
+              <span>Dismiss</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/85 backdrop-blur-md">
@@ -173,15 +228,13 @@ export const ScanningModal: React.FC<ScanningModalProps> = ({ repoUrl, onComplet
             {logs.map((log, index) => (
               <div
                 key={index}
-                className={`flex items-start gap-2 ${
-                  log.includes('[ALERT]') || log.includes('Zero-Day')
-                    ? 'text-rose-400 font-semibold'
-                    : log.includes('[SUCCESS]') || log.includes('[BLOCKCHAIN]')
-                    ? 'text-lime-400 font-semibold'
-                    : log.includes('[AI]')
-                    ? 'text-lime-300'
-                    : 'text-stone-300'
-                }`}
+                className={`flex items-start gap-2 ${log.includes('[ALERT]') || log.includes('Zero-Day') || log.includes('[ERROR]')
+                  ? 'text-rose-400 font-semibold'
+                  : log.includes('[SUCCESS]') || log.includes('[BLOCKCHAIN]')
+                  ? 'text-lime-400 font-semibold'
+                  : log.includes('[AI]')
+                  ? 'text-lime-300'
+                  : 'text-stone-300'}`}
               >
                 <span className="text-stone-600 select-none">&gt;</span>
                 <span>{log}</span>

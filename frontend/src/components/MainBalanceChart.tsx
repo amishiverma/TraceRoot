@@ -3,9 +3,25 @@ import { ArrowUpRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 type TimeFilter = '1 year' | '6 month' | '3-month' | '1 month';
 
-export const MainBalanceChart: React.FC = () => {
+interface MainBalanceChartProps {
+  criticalCount?: number;
+  warningCount?: number;
+  safeCount?: number;
+  totalPackages?: number;
+}
+
+export const MainBalanceChart: React.FC<MainBalanceChartProps> = ({
+  criticalCount = 0,
+  warningCount = 0,
+  safeCount = 0,
+  totalPackages = 0,
+}) => {
   const [filter, setFilter] = useState<TimeFilter>('1 year');
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
+
+  const trustRating = totalPackages > 0 
+    ? Math.max(10, Math.min(100, Math.round(((safeCount + warningCount * 0.5) / totalPackages) * 100))) 
+    : 98.4;
 
   // Time datasets with codebase security index percentages
   const datasets: Record<TimeFilter, { labels: string[]; values: number[]; percent: string }> = {
@@ -74,7 +90,7 @@ export const MainBalanceChart: React.FC = () => {
           </span>
           <div className="flex items-baseline space-x-3 mt-1.5 flex-wrap gap-y-1">
             <span className="text-3xl sm:text-4xl font-sans font-extrabold text-white tracking-tight">
-              98.4%
+              {trustRating}%
             </span>
             <span className="text-sm font-sans font-medium bg-gradient-to-r from-emerald-400 via-teal-300 to-lime-300 bg-clip-text text-transparent">
               Trust Rating
@@ -84,7 +100,9 @@ export const MainBalanceChart: React.FC = () => {
             </span>
           </div>
           <span className="text-[11px] text-stone-400 font-sans mt-1.5 block">
-            2,847 Packages Audited • Zero-Day Defense Verified
+            {totalPackages > 0 
+              ? `${totalPackages} Packages Audited • ${criticalCount} Critical, ${warningCount} Warning, ${safeCount} Safe`
+              : '2,847 Packages Audited • Zero-Day Defense Verified'}
           </span>
         </div>
 

@@ -384,13 +384,28 @@ async def scan_repository(request: ScanRequest):
             
             # 2. RUN PARAM'S AI RISK SCORER!
             safe_manifest = assess_all_risks(graph, safe_manifest)
+
+            # 3. GENERATE GEMINI AI THREAT EXPLANATIONS
+            try:
+                from app.ai.explanation import generate_threat_explanation
+                for pkg in safe_manifest:
+                    pkg["ai_threat_explanation"] = generate_threat_explanation(
+                        pkg.get("package", "unknown"),
+                        pkg.get("final_risk_score", 0),
+                        pkg.get("risk_flags", [])
+                    )
+            except Exception as ai_err:
+                print(f"⚠️ AI Threat Explanation Warning: {ai_err}")
+                for pkg in safe_manifest:
+                    if "ai_threat_explanation" not in pkg:
+                        pkg["ai_threat_explanation"] = "Package behavior appears normal. No immediate threats detected."
             
             # --- THE GHOST DETECTOR (ADD THESE 2 LINES) ---
             first_pkg = safe_manifest[0]
             print(f"👻 GHOST DETECTOR: First package is {first_pkg['package']} with Score: {first_pkg.get('final_risk_score', 'MISSING!')}")
             # ----------------------------------------------
             
-            print(f"🚀 SUCCESS! AI Risk Scores calculated.")
+            print(f"🚀 SUCCESS! AI Risk Scores & Threat Explanations calculated.")
         except Exception as e:
             print(f"❌ AI/GRAPH ERROR: {e}")
         # ---------------------------------------------

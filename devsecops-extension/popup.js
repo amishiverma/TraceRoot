@@ -281,8 +281,9 @@ document.addEventListener("DOMContentLoaded", () => {
       "Gemini AI threat synthesis passed: No high-risk vulnerability vectors or anomalous patterns detected in dependency tree.";
 
     aiThreatExplanationText.textContent = threatExplanation;
-    if (highestRiskPackage && highestRiskPackage.name) {
-      aiTargetPkg.textContent = `TARGET: ${highestRiskPackage.name}`;
+    const targetPkgName = highestRiskPackage?.package || highestRiskPackage?.name;
+    if (highestRiskPackage && targetPkgName) {
+      aiTargetPkg.textContent = `TARGET: ${targetPkgName}`;
       aiTargetPkg.style.display = "inline-block";
     } else {
       aiTargetPkg.style.display = "none";

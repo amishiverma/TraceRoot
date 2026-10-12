@@ -4,20 +4,38 @@ import { ArrowUpRight, Search, ShieldCheck, Cpu, CheckCircle2, Copy, Check, Lock
 interface StackedCardContainerProps {
   onScanRepo: () => void;
   onVerifyHash: () => void;
+  scanTxHash?: string | null;
+  stats?: {
+    criticalCount: number;
+    warningCount: number;
+    safeCount: number;
+    totalPackages: number;
+  };
 }
 
 export const StackedCardContainer: React.FC<StackedCardContainerProps> = ({
   onScanRepo,
   onVerifyHash,
+  scanTxHash,
+  stats,
 }) => {
   const [copied, setCopied] = useState(false);
-  const txHash = '0x8f4d92a39b40...e79b';
+  
+  const displayTxHash = scanTxHash || '0x8f4d92a39b4012948123acbbef01293e8f49e79b';
+  const shortTxHash = displayTxHash.length > 20 
+    ? `${displayTxHash.slice(0, 10)}...${displayTxHash.slice(-6)}` 
+    : displayTxHash;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText('0x8f4d92a39b4012948123acbbef01293e8f49e79b');
+    navigator.clipboard.writeText(displayTxHash);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const criticalCount = stats?.criticalCount ?? 0;
+  const warningCount = stats?.warningCount ?? 0;
+  const safeCount = stats?.safeCount ?? 0;
+  const totalPackages = stats?.totalPackages ?? 0;
 
   return (
     <div className="rounded-3xl bg-[#121412] border border-stone-800 p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden h-full shadow-lg">
@@ -70,7 +88,9 @@ export const StackedCardContainer: React.FC<StackedCardContainerProps> = ({
               Block #5,928,174
             </div>
             <span className="text-[11px] text-stone-300 font-sans block mt-0.5">
-              100% Cryptographic Proof Confirmed • Zero-Day Shields Active
+              {totalPackages > 0 
+                ? `${totalPackages} packages anchored • ${criticalCount} critical, ${warningCount} warning, ${safeCount} safe`
+                : '100% Cryptographic Proof Confirmed • Zero-Day Shields Active'}
             </span>
           </div>
 
@@ -78,12 +98,25 @@ export const StackedCardContainer: React.FC<StackedCardContainerProps> = ({
           <div className="flex items-end justify-between relative z-10 text-xs">
             <div>
               <span className="text-[10px] text-lime-200/80 block font-sans font-medium">REPOSITORY</span>
-              <span className="font-sans font-bold tracking-wide">facebook/react</span>
+              <span className="font-sans font-bold tracking-wide">{totalPackages > 0 ? 'Latest Scan' : 'facebook/react'}</span>
             </div>
 
             <div className="text-right">
               <span className="text-[10px] text-lime-200/80 block font-sans font-medium">MERKLE DIGEST</span>
-              <span className="font-mono tracking-wider">0x184f...903b</span>
+              <div className="flex items-center justify-end gap-1.5">
+                <span className="font-mono tracking-wider text-xs">{shortTxHash}</span>
+                <button
+                  onClick={handleCopy}
+                  className="p-1 rounded-md hover:bg-white/10 text-stone-300 transition-colors"
+                  title="Copy transaction hash"
+                >
+                  {copied ? (
+                    <Check className="w-3.5 h-3.5 text-lime-400" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 

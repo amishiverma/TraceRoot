@@ -13,6 +13,13 @@ interface DashboardOverviewProps {
   onSelectItem: (name: string) => void;
   onOpenVR?: () => void;
   currentRepo?: string;
+  scanTxHash?: string | null;
+  stats?: {
+    criticalCount: number;
+    warningCount: number;
+    safeCount: number;
+    totalPackages: number;
+  };
 }
 
 export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
@@ -22,7 +29,14 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   onSelectItem,
   onOpenVR,
   currentRepo = 'facebook/react',
+  scanTxHash,
+  stats,
 }) => {
+  const criticalCount = stats?.criticalCount ?? 0;
+  const warningCount = stats?.warningCount ?? 0;
+  const safeCount = stats?.safeCount ?? 0;
+  const totalPackages = stats?.totalPackages ?? 0;
+
   return (
     <div className="space-y-6 sm:space-y-7 max-w-[1600px] mx-auto pb-6">
       
@@ -30,7 +44,12 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-7 items-stretch">
         {/* Left: Codebase Security Index Curve Chart (7-8 cols) */}
         <div className="lg:col-span-7 xl:col-span-8 min-h-[390px]">
-          <MainBalanceChart />
+          <MainBalanceChart 
+            criticalCount={criticalCount}
+            warningCount={warningCount}
+            safeCount={safeCount}
+            totalPackages={totalPackages}
+          />
         </div>
 
         {/* Right: Interactive 3D/Glass Network Node Preview Widget (4-5 cols) */}
@@ -50,6 +69,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             currentRepo={currentRepo}
             onVerifyProof={onVerifyHash}
             onScanRepo={onScanRepo}
+            scanTxHash={scanTxHash}
+            stats={stats}
           />
         </div>
 

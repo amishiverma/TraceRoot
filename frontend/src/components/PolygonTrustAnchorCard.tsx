@@ -5,16 +5,25 @@ interface PolygonTrustAnchorCardProps {
   currentRepo?: string;
   onVerifyProof?: () => void;
   onScanRepo?: () => void;
+  scanTxHash?: string | null;
+  stats?: {
+    criticalCount: number;
+    warningCount: number;
+    safeCount: number;
+    totalPackages: number;
+  };
 }
 
 export const PolygonTrustAnchorCard: React.FC<PolygonTrustAnchorCardProps> = ({
   currentRepo = 'facebook/react',
   onVerifyProof,
   onScanRepo,
+  scanTxHash,
+  stats,
 }) => {
   const [copied, setCopied] = useState(false);
-  const merkleHash = '0x184f...903b';
-  const fullHash = '0x184fe982bca903b71948274aefb90218a93bcde4';
+  const fullHash = scanTxHash || '0x184fe982bca903b71948274aefb90218a93bcde4';
+  const merkleHash = fullHash.length > 14 ? `${fullHash.slice(0, 6)}...${fullHash.slice(-4)}` : fullHash;
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();

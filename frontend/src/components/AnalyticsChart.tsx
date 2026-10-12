@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
 import { Activity, TrendingDown } from 'lucide-react';
 import { mockTrendData } from '../data/mockData';
+import { ScanHistoryEntry } from '../types';
 
 type FilterPeriod = '30 Days' | '6 Months' | '1 Year';
 
-export const AnalyticsChart: React.FC = () => {
+interface AnalyticsChartProps {
+  history?: ScanHistoryEntry[];
+}
+
+export const AnalyticsChart: React.FC<AnalyticsChartProps> = ({ history = [] }) => {
   const [period, setPeriod] = useState<FilterPeriod>('30 Days');
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
+  // If history is provided and has items, use latest scan stats to inform metric cards
+  const latestScan = history.length > 0 ? history[0] : null;
   const data = mockTrendData[period];
 
   // SVG dimensions
@@ -75,20 +82,27 @@ export const AnalyticsChart: React.FC = () => {
       <div className="grid grid-cols-3 gap-3 my-4 relative z-10 font-sans text-xs">
         <div className="p-3 rounded-2xl bg-[#0e100f] border border-stone-800">
           <span className="text-stone-400 block text-[10px] font-sans font-medium">CURRENT RISK INDEX</span>
-          <span className="text-lg font-bold text-emerald-400 flex items-center gap-1">
-            {hoveredItem ? hoveredItem.riskScore : 28} <span className="text-[10px] text-stone-400 font-sans">/ 100</span>
+          <span className="text-lg font-bold text-emerald-400 flex items-center gap-1 font-sans">
+            {hoveredIndex !== null 
+              ? hoveredItem.riskScore 
+              : (latestScan ? latestScan.overallRiskScore : 28)}{' '}
+            <span className="text-[10px] text-stone-400 font-sans">/ 100</span>
           </span>
         </div>
         <div className="p-3 rounded-2xl bg-[#0e100f] border border-stone-800">
           <span className="text-stone-400 block text-[10px] font-sans font-medium">TOTAL SCANNED</span>
           <span className="text-lg font-bold text-stone-100 font-sans">
-            {hoveredItem ? hoveredItem.packages.toLocaleString() : '2,847'}
+            {hoveredIndex !== null 
+              ? hoveredItem.packages.toLocaleString() 
+              : (latestScan ? latestScan.totalPackages.toLocaleString() : '2,847')}
           </span>
         </div>
         <div className="p-3 rounded-2xl bg-[#0e100f] border border-stone-800">
-          <span className="text-stone-400 block text-[10px] font-sans font-medium">ZERO-DAY SPIKES</span>
-          <span className="text-lg font-bold text-amber-400 flex items-center gap-1 font-sans">
-            {hoveredItem ? hoveredItem.anomalies : 2}
+          <span className="text-stone-400 block text-[10px] font-sans font-medium">CRITICAL ALERTS</span>
+          <span className="text-lg font-bold text-rose-400 flex items-center gap-1 font-sans">
+            {hoveredIndex !== null 
+              ? hoveredItem.anomalies 
+              : (latestScan ? latestScan.criticalCount : 2)}
           </span>
         </div>
       </div>
