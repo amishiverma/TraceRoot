@@ -1,19 +1,48 @@
+const BACKEND_URL = "http://127.0.0.1:8000";
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log("1. Background received action:", request.action);
+  console.log("1. Background received action:", request?.action);
 
+  // 1. Health check action for live status indicator
+  if (request.action === "CHECK_HEALTH") {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    fetch(`${BACKEND_URL}/health`, { signal: controller.signal })
+      .then((res) => {
+        clearTimeout(timeoutId);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data) => sendResponse({ success: true, data }))
+      .catch((err) => {
+        clearTimeout(timeoutId);
+        sendResponse({ success: false, error: err.message });
+      });
+
+    return true;
+  }
+
+  // 2. Repository dependency audit action
   if (request.action === "SCAN_REPO") {
-    console.log("2. Fetching from Python backend: http://127.0.0.1:8000/api/scan");
+    console.log("2. Fetching from Python backend:", `${BACKEND_URL}/api/scan`);
 
-    fetch("http://127.0.0.1:8000/api/scan", {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+    fetch(`${BACKEND_URL}/api/scan`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json"
       },
-      body: JSON.stringify({ github_url: request.github_url })
+      body: JSON.stringify({ github_url: request.github_url }),
+      signal: controller.signal
     })
       .then(async (response) => {
+        clearTimeout(timeoutId);
         console.log("3. Got response from Python! Status:", response.status);
+
         if (!response.ok) {
           let errorMsg = `HTTP error! status: ${response.status}`;
           try {
@@ -30,17 +59,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
         return response.json();
       })
-      .then(data => {
+      .then((data) => {
         console.log("4. Python Data parsed successfully!", data);
         sendResponse({ success: true, data: data });
         console.log("5. Sent data back to popup UI!");
       })
-      .catch(error => {
+      .catch((error) => {
+        clearTimeout(timeoutId);
         console.error("❌ Fetch Error:", error);
-        sendResponse({ success: false, error: error.message });
+        const errorMsg = error.name === "AbortError"
+          ? "Scan timed out (30s limit exceeded). The repository may be too large or the scanner is busy."
+          : error.message;
+        sendResponse({ success: false, error: errorMsg });
       });
 
-    // 🔥 THIS LINE PREVENTS THE INFINITE SPINNER 🔥
+    // Keep message channel open for async response
     console.log("Keeping message channel open...");
     return true;
   }

@@ -588,6 +588,26 @@
       border: 1px solid rgba(255, 255, 255, 0.05);
       border-radius: 6px;
       padding: 8px 10px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .dep-row:hover {
+      background: #0f182a;
+      border-color: rgba(0, 243, 255, 0.25);
+    }
+
+    .dep-detail-panel {
+      display: none;
+      background: #050811;
+      border: 1px solid rgba(0, 243, 255, 0.15);
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      padding: 8px 10px;
+      font-size: 11px;
+      color: #94a3b8;
+      font-family: var(--font-mono);
+      animation: fadeIn 0.15s ease-out;
     }
 
     .dep-info {
@@ -747,11 +767,12 @@
     </section>
 
     <!-- Error Alert Card -->
-    <section id="error-card" class="error-card">
+    <section id="error-card" class="error-card" style="position: relative;">
+      <button id="dismiss-error-btn" style="position: absolute; top: 10px; right: 10px; background: none; border: none; color: var(--neon-red); font-size: 14px; cursor: pointer;" title="Dismiss">✕</button>
       <div class="error-card-title">⚠️ SCAN EXECUTION FAILED</div>
       <div class="error-msg" id="error-card-msg">Unable to connect to scanner service.</div>
       <div class="error-hint">
-        Backend Endpoint: <code>http://localhost:8000/api/scan</code>. Check FastAPI status.
+        Backend Endpoint: <code>http://127.0.0.1:8000/api/scan</code>. Check FastAPI status.
       </div>
     </section>
 
@@ -775,8 +796,8 @@
       <!-- Web3 Blockchain Anchor Card -->
       <div class="web3-card">
         <div class="web3-header">
-          <span class="web3-badge">✅ Anchored to Web3</span>
-          <span class="web3-subtext">ETHEREUM / POLYGON</span>
+          <span class="web3-badge" id="web3-anchor-badge">✅ Anchored to Web3</span>
+          <span class="web3-subtext" id="web3-network-subtext">ETHEREUM / POLYGON</span>
         </div>
         <div class="web3-tx-container">
           <span class="web3-tx-label">TX:</span>
@@ -800,7 +821,7 @@
       <!-- Analyzed Dependencies Accordion / List -->
       <div class="deps-card">
         <div class="deps-title">
-          <span>AUDITED PACKAGES</span>
+          <span>AUDITED PACKAGES (CLICK TO EXPAND DETAILS)</span>
           <span id="deps-count-tag" style="color: var(--neon-cyan);">0</span>
         </div>
         <div class="deps-list" id="deps-list-container">
@@ -812,7 +833,7 @@
 
   <!-- Footer -->
   <footer class="footer">
-    <span>ENDPOINT: :8000/api/scan</span>
+    <span id="footer-endpoint">ENDPOINT: 127.0.0.1:8000/api/scan</span>
     <span>TraceRoot v1.0.0</span>
   </footer>
 

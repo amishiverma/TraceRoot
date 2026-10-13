@@ -12,6 +12,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const scanTriggerBtn = document.getElementById("scan-trigger-btn");
   const scanBtnLabel = document.getElementById("scan-btn-label");
 
+  const systemStatus = document.getElementById("system-status");
+  const statusText = document.getElementById("status-text");
+
   const loadingContainer = document.getElementById("loading-container");
   const loadingStageText = document.getElementById("loading-stage-text");
   const telemetryLog1 = document.getElementById("telemetry-log-1");
@@ -20,6 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const errorCard = document.getElementById("error-card");
   const errorCardMsg = document.getElementById("error-card-msg");
+  const dismissErrorBtn = document.getElementById("dismiss-error-btn");
 
   const resultsContainer = document.getElementById("results-container");
   const riskBannerCard = document.getElementById("risk-banner-card");
@@ -27,6 +31,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const maxRiskScoreVal = document.getElementById("max-risk-score-val");
   const riskBarFill = document.getElementById("risk-bar-fill");
 
+  const web3AnchorBadge = document.getElementById("web3-anchor-badge");
+  const web3NetworkSubtext = document.getElementById("web3-network-subtext");
   const web3TxHashDisplay = document.getElementById("web3-tx-hash-display");
   const copyTxBtn = document.getElementById("copy-tx-btn");
 
@@ -40,13 +46,22 @@ document.addEventListener("DOMContentLoaded", () => {
   let isEditingCustomUrl = false;
   let loadingInterval = null;
 
-  // 1. Detect current tab and extract GitHub repository
+  // 1. Live Backend Health Check
+  checkBackendHealth();
+
+  // 2. Detect current tab and extract GitHub repository
   detectActiveTabRepo();
 
-  // 2. Check for cached previous scan
+  // 3. Check for cached previous scan
   loadCachedScan();
 
-  // 3. Event Listeners
+  // 4. Event Listeners
+  if (dismissErrorBtn) {
+    dismissErrorBtn.addEventListener("click", () => {
+      errorCard.style.display = "none";
+    });
+  }
+
   scanTriggerBtn.addEventListener("click", () => {
     const targetUrl = isEditingCustomUrl ? customRepoInput.value.trim() : activeRepoUrl;
     if (!targetUrl) {
@@ -87,6 +102,29 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
   });
+
+  /**
+   * Pings the backend service health endpoint
+   */
+  function checkBackendHealth() {
+    chrome.runtime.sendMessage({ action: "CHECK_HEALTH" }, (response) => {
+      if (chrome.runtime.lastError || !response || !response.success) {
+        if (statusText) statusText.textContent = "OFFLINE";
+        if (systemStatus) {
+          systemStatus.style.background = "rgba(255, 0, 85, 0.1)";
+          systemStatus.style.borderColor = "rgba(255, 0, 85, 0.3)";
+          systemStatus.style.color = "var(--neon-red)";
+        }
+      } else {
+        if (statusText) statusText.textContent = "ONLINE";
+        if (systemStatus) {
+          systemStatus.style.background = "rgba(0, 255, 136, 0.1)";
+          systemStatus.style.borderColor = "rgba(0, 255, 136, 0.3)";
+          systemStatus.style.color = "var(--neon-green)";
+        }
+      }
+    });
+  }
 
   /**
    * Identifies if active browser tab is on a GitHub repository
@@ -155,6 +193,9 @@ document.addEventListener("DOMContentLoaded", () => {
           showError(response?.error || "DevSecOps audit service encountered an error.");
           return;
         }
+
+        // Persist scan cache to storage so loadCachedScan() works reliably
+        chrome.storage.local.set({ lastScan: response.data, lastRepoUrl: repoUrl });
 
         renderScanResults(response.data, repoUrl);
       }
@@ -270,17 +311,38 @@ document.addEventListener("DOMContentLoaded", () => {
     riskBarFill.style.backgroundColor = themeColor;
     riskBarFill.style.boxShadow = `0 0 12px ${themeColor}`;
 
-    // 3. Display Web3 Transaction Hash
-    const isMockHash = !txHash || txHash === "0x0000000000000000000000000000000000000000" || txHash.startsWith("mock_tx_");
-    if (!isMockHash && txHash) {
-        const shortTx = txHash.length > 20 ? `${txHash.slice(0, 10)}...${txHash.slice(-8)}` : txHash;
-        web3TxHashDisplay.textContent = shortTx;
-        web3TxHashDisplay.title = txHash;
-        copyTxBtn.setAttribute("data-full-hash", txHash);
-        copyTxBtn.style.display = "inline-block";
+    // 3. Display Web3 Transaction Hash & Mode
+    const isMockTx = !txHash || txHash === "0x0000000000000000000000000000000000000000" || txHash.startsWith("mock_tx_");
+    const shortTx = txHash && txHash.length > 20 ? `${txHash.slice(0, 10)}...${txHash.slice(-8)}` : (txHash || "—");
+
+    web3TxHashDisplay.textContent = shortTx;
+    web3TxHashDisplay.title = txHash || "";
+    if (txHash) {
+      copyTxBtn.setAttribute("data-full-hash", txHash);
+      copyTxBtn.style.display = "inline-block";
     } else {
-        web3TxHashDisplay.textContent = "—";
-        copyTxBtn.style.display = "none";
+      copyTxBtn.style.display = "none";
+    }
+
+    if (web3AnchorBadge) {
+      web3AnchorBadge.textContent = isMockTx ? "⚠️ Simulated Anchor (Dev Mode)" : "✅ Anchored to Polygon";
+    }
+    if (web3NetworkSubtext) {
+      web3NetworkSubtext.textContent = isMockTx ? "LOCAL MOCK HASH" : "AMOY TESTNET";
+    }
+
+    // Click to view on Explorer if not mock
+    if (!isMockTx && web3TxHashDisplay) {
+      web3TxHashDisplay.style.cursor = "pointer";
+      web3TxHashDisplay.style.textDecoration = "underline";
+      web3TxHashDisplay.title = `Click to view on Polygon Amoy Explorer:\n${txHash}`;
+      web3TxHashDisplay.onclick = () => {
+        chrome.tabs.create({ url: `https://amoy.polygonscan.com/tx/${txHash}` });
+      };
+    } else if (web3TxHashDisplay) {
+      web3TxHashDisplay.style.cursor = "default";
+      web3TxHashDisplay.style.textDecoration = "none";
+      web3TxHashDisplay.onclick = null;
     }
 
     // 4. Display Gemini AI Threat Explanation from highest-risk package
@@ -288,10 +350,10 @@ document.addEventListener("DOMContentLoaded", () => {
       "Gemini AI threat synthesis passed: No high-risk vulnerability vectors or anomalous patterns detected in dependency tree.";
 
     aiThreatExplanationText.textContent = threatExplanation;
-    
-    // Fix: Check for actual package property, not just truthiness
-    if (highestRiskPackage && highestRiskPackage.package) {
-      aiTargetPkg.textContent = `TARGET: ${highestRiskPackage.package}`;
+
+    const targetPkgName = highestRiskPackage?.package;
+    if (highestRiskPackage && targetPkgName) {
+      aiTargetPkg.textContent = `TARGET: ${targetPkgName}`;
       aiTargetPkg.style.display = "inline-block";
     } else {
       aiTargetPkg.style.display = "none";
@@ -301,21 +363,21 @@ document.addEventListener("DOMContentLoaded", () => {
     const mlScore = highestRiskPackage?.ml_anomaly_score;
     const mlStatus = highestRiskPackage?.ml_anomaly_status;
     const mlNote = highestRiskPackage?.ml_anomaly_note;
-    
+
     // Remove any existing ML badge
     const existingMlBadge = riskBannerCard.querySelector(".ml-badge");
     if (existingMlBadge) existingMlBadge.remove();
-    
+
     if (mlScore !== null && mlScore !== undefined) {
       const mlBadge = document.createElement("span");
       mlBadge.className = "ml-badge";
-      mlBadge.style.cssText = "font-size: 11px; padding: 2px 6px; border-radius: 4px; background: var(--neon-purple); color: white; margin-left: 8px;";
+      mlBadge.style.cssText = "font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #8b5cf6; color: white; margin-left: 8px;";
       mlBadge.textContent = `ML: ${mlScore.toFixed(1)} (${mlStatus})`;
       if (mlNote) mlBadge.title = mlNote;
       riskBannerCard.appendChild(mlBadge);
     }
 
-    // 5. Render Dependencies List
+    // 5. Render Dependencies List with Interactive Accordions
     depsCountTag.textContent = `${dependencies.length}`;
     depsListContainer.innerHTML = "";
 
@@ -330,6 +392,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const depScore = dep.final_risk_score ?? 0;
         const depFlags = Array.isArray(dep.risk_flags) ? dep.risk_flags : [];
         const depColor = depScore >= 70 ? "var(--neon-red)" : depScore >= 30 ? "var(--neon-amber)" : "var(--neon-green)";
+
+        const rowWrapper = document.createElement("div");
+        rowWrapper.className = "dep-item-wrapper";
 
         const row = document.createElement("div");
         row.className = "dep-row";
@@ -347,7 +412,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // ML anomaly badge for each dep
         const mlBadge = dep.ml_anomaly_score !== null && dep.ml_anomaly_score !== undefined
-          ? `<span class="ml-badge" style="font-size: 10px; padding: 1px 4px; border-radius: 3px; background: var(--neon-purple); color: white; margin-left: 4px;" title="${dep.ml_anomaly_note || ''}">ML: ${dep.ml_anomaly_score.toFixed(1)}</span>`
+          ? `<span class="ml-badge" style="font-size: 10px; padding: 1px 4px; border-radius: 3px; background: #8b5cf6; color: white; margin-left: 4px;" title="${dep.ml_anomaly_note || ''}">ML: ${dep.ml_anomaly_score.toFixed(1)}</span>`
           : "";
 
         row.innerHTML = `
@@ -355,14 +420,60 @@ document.addEventListener("DOMContentLoaded", () => {
             <span class="dep-name">${escapeHtml(dep.package)} ${versionHtml}</span>
             <div class="dep-flags">${flagsHtml}</div>
           </div>
-          <div style="display: flex; align-items: center; gap: 4px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
             ${mlBadge}
             <span class="dep-score-badge" style="color: ${depColor}; border-color: ${depColor};">
               ${depScore}
             </span>
+            <span class="accordion-arrow" style="font-size: 10px; color: var(--text-dim); transition: transform 0.2s;">▼</span>
           </div>
         `;
-        depsListContainer.appendChild(row);
+
+        // Expandable Detail Panel
+        const detailPanel = document.createElement("div");
+        detailPanel.className = "dep-detail-panel";
+
+        const vulns = Array.isArray(dep.vulnerabilities) ? dep.vulnerabilities : [];
+        let vulnsHtml = "";
+        if (vulns.length > 0) {
+          vulnsHtml = `
+            <div style="margin-bottom: 4px; color: var(--neon-red); font-weight: 700;">
+              Detected OSV Advisories (${vulns.length}):
+            </div>
+            ${vulns.slice(0, 3).map((v) => `
+              <div style="margin-bottom: 4px; padding-left: 6px; border-left: 2px solid var(--neon-red);">
+                <span style="color: #fff; font-weight: 600;">${escapeHtml(v.id || 'CVE')}</span>:
+                <span>${escapeHtml(v.summary || 'Known Security Vulnerability')}</span>
+              </div>
+            `).join("")}
+            ${vulns.length > 3 ? `<div style="font-size: 10px; opacity: 0.6;">+ ${vulns.length - 3} more vulnerabilities</div>` : ""}
+          `;
+        } else {
+          vulnsHtml = `<div style="color: var(--neon-green);">• Clean: No known CVEs reported in OSV database.</div>`;
+        }
+
+        detailPanel.innerHTML = `
+          <div style="margin-bottom: 6px; font-size: 10px; color: var(--text-dim);">
+            Dependency Tree: <strong>${escapeHtml(dep.parent || 'root')}</strong> → <strong>${escapeHtml(dep.package)}</strong>
+          </div>
+          ${vulnsHtml}
+          ${dep.ml_anomaly_note ? `<div style="margin-top: 4px; font-size: 10px; color: #a78bfa;">ML Note: ${escapeHtml(dep.ml_anomaly_note)}</div>` : ''}
+        `;
+
+        // Toggle Accordion Click
+        row.addEventListener("click", () => {
+          const isExpanded = detailPanel.style.display === "block";
+          detailPanel.style.display = isExpanded ? "none" : "block";
+          const arrow = row.querySelector(".accordion-arrow");
+          if (arrow) {
+            arrow.style.transform = isExpanded ? "rotate(0deg)" : "rotate(180deg)";
+            arrow.style.color = isExpanded ? "var(--text-dim)" : "var(--neon-cyan)";
+          }
+        });
+
+        rowWrapper.appendChild(row);
+        rowWrapper.appendChild(detailPanel);
+        depsListContainer.appendChild(rowWrapper);
       });
     }
 

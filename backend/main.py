@@ -5,6 +5,14 @@ Scans GitHub repositories for package.json dependencies and enriches with threat
 from dotenv import load_dotenv
 load_dotenv()  # This loads the variables from .env into your system environment
 import os
+import sys
+
+# Ensure UTF-8 output encoding on Windows consoles
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 import re
 import asyncio
 import logging
@@ -13,6 +21,7 @@ import httpx
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 from pydantic import BaseModel, HttpUrl, field_validator
 from blockchain import anchor_manifest
 from fastapi.encoders import jsonable_encoder
@@ -75,31 +84,33 @@ validate_required_env()
 CORS_ALLOWED_ORIGINS = get_cors_allowed_origins()
 
 
-# Dynamic CORS middleware to support chrome-extension:// origins
+# Dynamic CORS middleware to support chrome-extension:// origins and preflight OPTIONS
 class ExtensionCORSMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         origin = request.headers.get("origin", "")
-        # Allow any chrome-extension:// origin
-        if origin.startswith("chrome-extension://"):
-            response = await call_next(request)
-            response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Access-Control-Allow-Methods"] = "*"
-            response.headers["Access-Control-Allow-Headers"] = "*"
-            return response
-        
-        # For web origins, use standard CORS validation
         cors_origins = get_cors_allowed_origins()
-        if origin and origin in cors_origins:
-            response = await call_next(request)
+        is_allowed = origin.startswith("chrome-extension://") or (origin and origin in cors_origins)
+
+        # Handle CORS preflight OPTIONS request
+        if request.method == "OPTIONS" and is_allowed:
+            return Response(
+                status_code=204,
+                headers={
+                    "Access-Control-Allow-Origin": origin,
+                    "Access-Control-Allow-Credentials": "true",
+                    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+                    "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept, Origin, X-Requested-With",
+                    "Access-Control-Max-Age": "86400",
+                }
+            )
+
+        response = await call_next(request)
+        if is_allowed:
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Access-Control-Allow-Methods"] = "*"
-            response.headers["Access-Control-Allow-Headers"] = "*"
-            return response
-        
-        # No matching origin - still process but don't add CORS headers
-        return await call_next(request)
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept, Origin, X-Requested-With"
+        return response
 
 
 class ScanRequest(BaseModel):
@@ -492,14 +503,14 @@ async def scan_repository(request: ScanRequest):
                     if "ai_threat_explanation" not in pkg:
                         pkg["ai_threat_explanation"] = "Package behavior appears normal. No immediate threats detected."
             
-            # --- THE GHOST DETECTOR (ADD THESE 2 LINES) ---
-            first_pkg = safe_manifest[0]
-            print(f"👻 GHOST DETECTOR: First package is {first_pkg['package']} with Score: {first_pkg.get('final_risk_score', 'MISSING!')}")
-            # ----------------------------------------------
+            # --- THE GHOST DETECTOR ---
+            if safe_manifest:
+                first_pkg = safe_manifest[0]
+                logger.info(f"GHOST DETECTOR: First package is {first_pkg.get('package')} with Score: {first_pkg.get('final_risk_score', 'MISSING!')}")
             
-            print(f"🚀 SUCCESS! AI Risk Scores & Threat Explanations calculated.")
+            logger.info("SUCCESS: AI Risk Scores & Threat Explanations calculated.")
         except Exception as e:
-            print(f"❌ AI/GRAPH ERROR: {e}")
+            logger.error(f"AI/GRAPH ERROR: {e}")
         # ---------------------------------------------
         # 2. Get the blockchain hash using the safe data
         tx_hash = anchor_manifest(safe_manifest)
