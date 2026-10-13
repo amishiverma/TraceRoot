@@ -9,7 +9,8 @@
     "storage"
   ],
   "host_permissions": [
-    "*://github.com/*",
+    "https://github.com/*",
+    "https://raw.githubusercontent.com/*",
     "http://localhost:8000/*",
     "http://127.0.0.1:8000/*"
   ],

@@ -271,10 +271,17 @@ document.addEventListener("DOMContentLoaded", () => {
     riskBarFill.style.boxShadow = `0 0 12px ${themeColor}`;
 
     // 3. Display Web3 Transaction Hash
-    const shortTx = txHash.length > 20 ? `${txHash.slice(0, 10)}...${txHash.slice(-8)}` : txHash;
-    web3TxHashDisplay.textContent = shortTx;
-    web3TxHashDisplay.title = txHash;
-    copyTxBtn.setAttribute("data-full-hash", txHash);
+    const isMockHash = !txHash || txHash === "0x0000000000000000000000000000000000000000" || txHash.startsWith("mock_tx_");
+    if (!isMockHash && txHash) {
+        const shortTx = txHash.length > 20 ? `${txHash.slice(0, 10)}...${txHash.slice(-8)}` : txHash;
+        web3TxHashDisplay.textContent = shortTx;
+        web3TxHashDisplay.title = txHash;
+        copyTxBtn.setAttribute("data-full-hash", txHash);
+        copyTxBtn.style.display = "inline-block";
+    } else {
+        web3TxHashDisplay.textContent = "—";
+        copyTxBtn.style.display = "none";
+    }
 
     // 4. Display Gemini AI Threat Explanation from highest-risk package
     const threatExplanation = highestRiskPackage?.ai_threat_explanation ||
