@@ -1,6 +1,6 @@
 import React from 'react';
 import { Terminal, Network, BookOpen, Layers, Coins, Cpu } from 'lucide-react';
-import { GithubIcon } from './GithubIcon';
+import { GithubIcon, formatGithubUrl } from './GithubIcon';
 import logoImg from '../assets/logo.png';
 
 interface NavbarProps {
@@ -10,6 +10,7 @@ interface NavbarProps {
   onOpenPricing: () => void;
   onOpenEcosystem: () => void;
   isDashboard?: boolean;
+  currentRepo?: string;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -19,6 +20,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenPricing,
   onOpenEcosystem,
   isDashboard = false,
+  currentRepo,
 }) => {
   return (
     <header className="sticky top-4 z-50 w-full px-4 sm:px-6 pointer-events-none transition-all">
@@ -92,11 +94,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Right Action Group: GitHub Repo Link + Console CTA */}
         <div className="flex items-center space-x-3 relative z-10">
           <a
-            href="https://github.com/amishivermaa/TraceRoot"
+            href={formatGithubUrl(currentRepo)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center w-9 h-9 rounded-full bg-white/[0.04] border border-white/10 hover:border-emerald-500/40 text-stone-300 hover:text-white transition-all shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] group"
-            title="TraceRoot Open-Source Repository (amishivermaa/TraceRoot)"
+            title={currentRepo ? `Open ${currentRepo} directly on GitHub` : 'Open GitHub'}
           >
             <GithubIcon className="w-4 h-4 group-hover:scale-110 transition-transform text-stone-300 group-hover:text-emerald-300" />
           </a>

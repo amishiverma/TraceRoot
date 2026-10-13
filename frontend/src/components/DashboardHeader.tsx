@@ -15,7 +15,7 @@ import {
   Layers,
   ArrowRight
 } from 'lucide-react';
-import { GithubIcon } from './GithubIcon';
+import { GithubIcon, formatGithubUrl } from './GithubIcon';
 import { NotificationItem, DependencyNode } from '../types';
 
 interface DashboardHeaderProps {
@@ -203,13 +203,13 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         {/* ------------------------------------------------------------------ */}
         <div className="flex items-center space-x-2 sm:space-x-3">
 
-          {/* GitHub Team Repository Link */}
+          {/* GitHub Active Repository Link */}
           <a
-            href="https://github.com/amishivermaa/TraceRoot"
+            href={formatGithubUrl(currentRepo)}
             target="_blank"
             rel="noopener noreferrer"
             className="p-2 sm:p-2.5 rounded-full bg-white/[0.04] border border-white/10 hover:border-emerald-500/40 text-stone-300 hover:text-emerald-300 transition-all flex items-center justify-center group"
-            title="TraceRoot Open-Source Repository (amishivermaa/TraceRoot)"
+            title={currentRepo ? `Open ${currentRepo} directly on GitHub` : 'Open GitHub'}
           >
             <GithubIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
           </a>

@@ -9,18 +9,15 @@ import {
   Zap, 
   ChevronDown
 } from 'lucide-react';
-
-const GithubIcon = ({ className = 'w-5 h-5' }: { className?: string }) => (
-  <svg className={className} fill="currentColor" viewBox="0 0 24 24">
-    <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
-  </svg>
-);
+import { GithubIcon, formatGithubUrl } from './GithubIcon';
 
 const TOTAL_LOGO_FRAMES = 277; // Frames 1-23 permanently removed
 const TOTAL_HERO_FRAMES = 300;
 
 interface LandingHeroProps {
   onStartScan: (repoUrl: string) => void;
+  currentRepo?: string;
+  onRepoChange?: (repoUrl: string) => void;
 }
 
 // ============================================================================
@@ -216,8 +213,8 @@ const LogoScrollySection: React.FC = () => {
 // ============================================================================
 // STAGE 2: HERO VIDEO 300-FRAME SCROLLYTELLING & REPOSITORY GATEWAY
 // ============================================================================
-const HeroScrollySection: React.FC<LandingHeroProps> = ({ onStartScan }) => {
-  const [repoInput, setRepoInput] = useState('https://github.com/facebook/react');
+const HeroScrollySection: React.FC<LandingHeroProps> = ({ onStartScan, currentRepo, onRepoChange }) => {
+  const [repoInput, setRepoInput] = useState(currentRepo ? (currentRepo.startsWith('http') ? currentRepo : `https://github.com/${currentRepo}`) : 'https://github.com/facebook/react');
   const [isFocused, setIsFocused] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -434,13 +431,22 @@ const HeroScrollySection: React.FC<LandingHeroProps> = ({ onStartScan }) => {
               }`}
             >
               <div className="glassmorphic-pill flex flex-col sm:flex-row items-center gap-2 rounded-full p-2.5">
-                <div className="flex items-center pl-3.5 text-stone-400">
-                  <GithubIcon className="w-5 h-5 text-emerald-400" />
-                </div>
+                <a
+                  href={formatGithubUrl(repoInput)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center pl-3.5 text-stone-400 hover:text-white transition-colors cursor-pointer group/gh"
+                  title={repoInput.trim() ? `Open ${repoInput} directly on GitHub` : 'Open GitHub'}
+                >
+                  <GithubIcon className="w-5 h-5 text-emerald-400 group-hover/gh:scale-110 transition-transform" />
+                </a>
                 <input
                   type="text"
                   value={repoInput}
-                  onChange={(e) => setRepoInput(e.target.value)}
+                  onChange={(e) => {
+                    setRepoInput(e.target.value);
+                    onRepoChange?.(e.target.value);
+                  }}
                   onFocus={() => setIsFocused(true)}
                   onBlur={() => setIsFocused(false)}
                   placeholder="Enter GitHub Repository URL (e.g., https://github.com/facebook/react)..."
@@ -475,6 +481,7 @@ const HeroScrollySection: React.FC<LandingHeroProps> = ({ onStartScan }) => {
                     }}
                     onClick={() => {
                       setRepoInput(preset.url);
+                      onRepoChange?.(preset.label);
                       onStartScan(preset.url);
                     }}
                     className="absolute px-4 py-1.5 rounded-full glassmorphic-card border border-white/20 hover:border-white/35 hover:text-white text-stone-300 transition-colors flex items-center gap-2 cursor-pointer shadow-md"
@@ -598,13 +605,22 @@ const HeroScrollySection: React.FC<LandingHeroProps> = ({ onStartScan }) => {
               }`}
             >
               <div className="glassmorphic-pill flex flex-col sm:flex-row items-center gap-2 rounded-full p-2.5">
-                <div className="flex items-center pl-3.5 text-stone-400">
-                  <GithubIcon className="w-5 h-5 text-emerald-400" />
-                </div>
+                <a
+                  href={formatGithubUrl(repoInput)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center pl-3.5 text-stone-400 hover:text-white transition-colors cursor-pointer group/gh"
+                  title={repoInput.trim() ? `Open ${repoInput} directly on GitHub` : 'Open GitHub'}
+                >
+                  <GithubIcon className="w-5 h-5 text-emerald-400 group-hover/gh:scale-110 transition-transform" />
+                </a>
                 <input
                   type="text"
                   value={repoInput}
-                  onChange={(e) => setRepoInput(e.target.value)}
+                  onChange={(e) => {
+                    setRepoInput(e.target.value);
+                    onRepoChange?.(e.target.value);
+                  }}
                   onFocus={() => setIsFocused(true)}
                   onBlur={() => setIsFocused(false)}
                   placeholder="Enter GitHub Repository URL (e.g., https://github.com/facebook/react)..."
@@ -669,14 +685,18 @@ const HeroScrollySection: React.FC<LandingHeroProps> = ({ onStartScan }) => {
 // ============================================================================
 // MAIN COMPONENT: SEQUENTIAL MULTI-STAGE SCROLLING (LOGO -> HERO)
 // ============================================================================
-export const LandingHero: React.FC<LandingHeroProps> = ({ onStartScan }) => {
+export const LandingHero: React.FC<LandingHeroProps> = ({ onStartScan, currentRepo, onRepoChange }) => {
   return (
     <div className="w-full bg-[#0b0d0c]">
       {/* 1. First Page: Logo Video 300-Frame Scrollytelling Sequence */}
       <LogoScrollySection />
 
       {/* 2. Second Page: Hero Video 300-Frame Scrollytelling & Gateway */}
-      <HeroScrollySection onStartScan={onStartScan} />
+      <HeroScrollySection 
+        onStartScan={onStartScan} 
+        currentRepo={currentRepo}
+        onRepoChange={onRepoChange}
+      />
     </div>
   );
 };

@@ -13,3 +13,23 @@ export const GithubIcon: React.FC<GithubIconProps> = ({ className = 'w-5 h-5' })
     />
   </svg>
 );
+
+/**
+ * Returns the exact target repository URL on GitHub if provided,
+ * otherwise falls back to the main GitHub website.
+ */
+export function formatGithubUrl(input?: string | null): string {
+  if (!input || !input.trim()) {
+    return 'https://github.com';
+  }
+  const trimmed = input.trim();
+  if (trimmed.startsWith('https://github.com/') || trimmed.startsWith('http://github.com/')) {
+    return trimmed.replace(/\.git$/, '');
+  }
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+  // Formats like "owner/repo" or "facebook/react"
+  const cleaned = trimmed.replace(/^\/+/, '').replace(/\.git$/, '');
+  return `https://github.com/${cleaned}`;
+}

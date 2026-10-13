@@ -24,7 +24,7 @@ import {
 } from './data/mockData';
 import { DependencyNode, ActiveTab, ScanHistoryEntry } from './types';
 import { Shield, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
-import { GithubIcon } from './components/GithubIcon';
+import { GithubIcon, formatGithubUrl } from './components/GithubIcon';
 import logoImg from './assets/logo.png';
 import { scanRepository, transformBackendResponse, saveScanToHistory, getLocalScanHistory } from './services/api';
 
@@ -184,11 +184,16 @@ export const App: React.FC = () => {
             onOpenPricing={() => setInfoModalType('pricing')}
             onOpenEcosystem={() => setInfoModalType('ecosystem')}
             isDashboard={false}
+            currentRepo={currentRepo}
           />
 
           {/* Hero Section */}
           <main className="flex-1">
-            <LandingHero onStartScan={handleStartScan} />
+            <LandingHero 
+              onStartScan={handleStartScan} 
+              currentRepo={currentRepo}
+              onRepoChange={setCurrentRepo}
+            />
             <FeaturesSection onExploreFeature={(feat) => {
               setCurrentView('dashboard');
               if (feat.includes('Graph')) setActiveTab('graph');
@@ -226,11 +231,11 @@ export const App: React.FC = () => {
                   Attack Surface Map
                 </button>
                 <a
-                  href="https://github.com/amishivermaa/TraceRoot"
+                  href={formatGithubUrl(currentRepo)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center space-x-1.5 hover:text-white transition-colors text-stone-400"
-                  title="TraceRoot Open-Source Repository (amishivermaa/TraceRoot)"
+                  title={currentRepo ? `Open ${currentRepo} directly on GitHub` : 'Open GitHub'}
                 >
                   <GithubIcon className="w-4 h-4" />
                   <span>GitHub</span>
