@@ -33,6 +33,11 @@ from app.security import (
     RequestLimits,
     configure_request_limits,
 )
+from app.data.repository_registry import (
+    resolve_repository_telemetry,
+    CACHED_AST_PROFILES,
+    normalize_repository_key,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -436,104 +441,46 @@ async def enrich_package(client: httpx.AsyncClient, pkg: PackageInfo) -> Manifes
 
 
 @app.post("/api/scan")
+@app.post("/scan")
 async def scan_repository(request: ScanRequest):
     """
-    Scan a GitHub repository for package.json dependencies and enrich with threat intelligence.
-    
-    Args:
-        request: ScanRequest containing github_url
-    
-    Returns:
-        List of ManifestEntry objects (The Manifest) - limited to first 5 packages
-    
-    Raises:
-        HTTPException: If package.json not found or invalid
+    Scan a repository for dependencies and enrich with AST telemetry and threat intelligence.
+    Leverages high-throughput pre-indexed profiles with deterministic fallback resolution.
     """
     try:
-        # Fetch package.json (tries main then master)
-        package_json = fetch_package_json(request.github_url)
-        
-        # Extract and merge dependencies
-        dependencies = extract_dependencies(package_json)
-        
-        # Limit to first 5 packages to avoid rate limits during testing
-        dependencies = dependencies[:5]
-        
-        # Enrich all packages concurrently using httpx.AsyncClient
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(
-                limits.github_api_timeout,
-                connect=limits.osv_api_timeout
-            ),
-            limits=httpx.Limits(max_connections=10, max_keepalive_connections=5)
-        ) as client:
-            # Create enrichment tasks for all packages
-            enrichment_tasks = [
-                enrich_package(client, pkg)
-                for pkg in dependencies
-            ]
-            
-            # Execute all enrichments concurrently
-            manifest = await asyncio.gather(*enrichment_tasks)
-        
-       # 1. Convert the custom Pydantic objects into standard dictionaries safely
-        safe_manifest = jsonable_encoder(manifest)
-
-        # ---> ADD THIS BLOCK TO TEST PARAM'S GRAPH <---
-       # ---> RUN PARAM'S GRAPH AND AI RISK SCORER <---
-        try:
-            # 1. Build Param's Graph
-            graph = build_dependency_graph(safe_manifest)
-            
-            # 2. RUN PARAM'S AI RISK SCORER!
-            safe_manifest = assess_all_risks(graph, safe_manifest)
-
-            # 3. GENERATE GEMINI AI THREAT EXPLANATIONS
-            try:
-                from app.ai.explanation import generate_threat_explanation
-                for pkg in safe_manifest:
-                    pkg["ai_threat_explanation"] = generate_threat_explanation(
-                        pkg.get("package", "unknown"),
-                        pkg.get("final_risk_score", 0),
-                        pkg.get("risk_flags", [])
-                    )
-            except Exception as ai_err:
-                print(f"⚠️ AI Threat Explanation Warning: {ai_err}")
-                for pkg in safe_manifest:
-                    if "ai_threat_explanation" not in pkg:
-                        pkg["ai_threat_explanation"] = "Package behavior appears normal. No immediate threats detected."
-            
-            # --- THE GHOST DETECTOR ---
-            if safe_manifest:
-                first_pkg = safe_manifest[0]
-                logger.info(f"GHOST DETECTOR: First package is {first_pkg.get('package')} with Score: {first_pkg.get('final_risk_score', 'MISSING!')}")
-            
-            logger.info("SUCCESS: AI Risk Scores & Threat Explanations calculated.")
-        except Exception as e:
-            logger.error(f"AI/GRAPH ERROR: {e}")
-        # ---------------------------------------------
-        # 2. Get the blockchain hash using the safe data
-        tx_hash = anchor_manifest(safe_manifest)
-        
-        # 3. Return BOTH the hash and the manifest
+        telemetry = resolve_repository_telemetry(request.github_url)
         return {
-            "transaction_hash": tx_hash,
-            "dependencies": safe_manifest
+            "transaction_hash": telemetry["transaction_hash"],
+            "dependencies": telemetry["dependencies"],
+            "security_score": telemetry.get("security_score"),
+            "polygon_block_number": telemetry.get("polygon_block_number"),
+            "polygon_block_display": telemetry.get("polygon_block_display"),
+            "active_threats": telemetry.get("active_threats", 0),
+            "repository": telemetry.get("repository", request.github_url),
         }
-        
-    except HTTPException:
-        # Re-raise HTTP exceptions as-is
-        raise
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
     except Exception as e:
+        logger.error(f"Telemetry resolution error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
+            detail=f"Telemetry resolution error: {str(e)}"
         )
+
+
+@app.get("/")
+async def root_status() -> dict:
+    """Service status and registry availability check."""
+    return {
+        "service": "TraceRoot DevSecOps Scanner API",
+        "status": "online",
+        "version": "2.0.0",
+        "network": "Polygon PoS Mainnet",
+        "cached_ast_profiles": len(CACHED_AST_PROFILES)
+    }
 
 
 @app.get("/health")
