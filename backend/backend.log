@@ -1,0 +1,101 @@
+WARNING:__main__:CORS_ALLOWED_ORIGINS not set, defaulting to localhost for development
+INFO:__main__:CORS allowed origins: ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173']
+INFO:__main__:GEMINI_API_KEY configured: False
+INFO:__main__:BLOCKCHAIN_RPC_URL configured: False
+INFO:__main__:BLOCKCHAIN_PRIVATE_KEY configured: False
+WARNING:__main__:CORS_ALLOWED_ORIGINS not set, defaulting to localhost for development
+INFO:     Started server process [12547]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+WARNING:__main__:CORS_ALLOWED_ORIGINS not set, defaulting to localhost for development
+INFO:     127.0.0.1:65044 - "GET /health HTTP/1.1" 200 OK
+WARNING:__main__:CORS_ALLOWED_ORIGINS not set, defaulting to localhost for development
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/@babel/preset-env "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/@babel/core "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/@babel/register "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/@babel/plugin-transform-object-assign "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/@fails-components/webtransport "HTTP/1.1 200 OK"
+WARNING:blockchain:[Blockchain Anchor] MOCK MODE: BLOCKCHAIN_RPC_URL not configured. Returning mock transaction hash.
+👻 GHOST DETECTOR: First package is @babel/core with Score: 49
+🚀 SUCCESS! AI Risk Scores & Threat Explanations calculated.
+INFO:     127.0.0.1:65097 - "POST /api/scan HTTP/1.1" 200 OK
+WARNING:__main__:CORS_ALLOWED_ORIGINS not set, defaulting to localhost for development
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/@babel/helper-module-imports "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/@babel/core "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/@babel/code-frame "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/@babel/helper-define-map "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/@babel/cli "HTTP/1.1 200 OK"
+WARNING:blockchain:[Blockchain Anchor] MOCK MODE: BLOCKCHAIN_RPC_URL not configured. Returning mock transaction hash.
+👻 GHOST DETECTOR: First package is @babel/cli with Score: 0
+🚀 SUCCESS! AI Risk Scores & Threat Explanations calculated.
+INFO:     127.0.0.1:65149 - "POST /api/scan HTTP/1.1" 200 OK
+WARNING:__main__:CORS_ALLOWED_ORIGINS not set, defaulting to localhost for development
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/@babel/code-frame "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/@babel/helper-module-imports "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/@babel/core "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/@babel/cli "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/@babel/helper-define-map "HTTP/1.1 200 OK"
+WARNING:blockchain:[Blockchain Anchor] MOCK MODE: BLOCKCHAIN_RPC_URL not configured. Returning mock transaction hash.
+👻 GHOST DETECTOR: First package is @babel/cli with Score: 0
+🚀 SUCCESS! AI Risk Scores & Threat Explanations calculated.
+INFO:     127.0.0.1:65172 - "POST /api/scan HTTP/1.1" 200 OK
+WARNING:__main__:CORS_ALLOWED_ORIGINS not set, defaulting to localhost for development
+INFO:     127.0.0.1:65192 - "POST /api/scan HTTP/1.1" 422 Unprocessable Entity
+WARNING:__main__:CORS_ALLOWED_ORIGINS not set, defaulting to localhost for development
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/accepts "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/content-type "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/content-disposition "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/cookie "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/body-parser "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+WARNING:blockchain:[Blockchain Anchor] MOCK MODE: BLOCKCHAIN_RPC_URL not configured. Returning mock transaction hash.
+👻 GHOST DETECTOR: First package is accepts with Score: 27
+🚀 SUCCESS! AI Risk Scores & Threat Explanations calculated.
+INFO:     127.0.0.1:65196 - "POST /api/scan HTTP/1.1" 200 OK
+WARNING:__main__:CORS_ALLOWED_ORIGINS not set, defaulting to localhost for development
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/@babel/helper-module-imports "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/@babel/cli "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/@babel/code-frame "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/@babel/core "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST https://api.osv.dev/v1/query "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://registry.npmjs.org/@babel/helper-define-map "HTTP/1.1 200 OK"
+WARNING:blockchain:[Blockchain Anchor] MOCK MODE: BLOCKCHAIN_RPC_URL not configured. Returning mock transaction hash.
+👻 GHOST DETECTOR: First package is @babel/cli with Score: 0
+🚀 SUCCESS! AI Risk Scores & Threat Explanations calculated.
+INFO:     127.0.0.1:65256 - "POST /api/scan HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49758 - "POST /api/scan HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49765 - "POST /api/scan HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49769 - "POST /api/scan HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49769 - "POST /api/scan HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49769 - "POST /api/scan HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49769 - "POST /api/scan HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49769 - "POST /api/scan HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49790 - "POST /api/scan HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49798 - "POST /api/scan HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49798 - "POST /api/scan HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49798 - "POST /api/scan HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50418 - "POST /api/scan HTTP/1.1" 404 Not Found

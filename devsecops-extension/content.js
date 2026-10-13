@@ -205,7 +205,7 @@
               <span class="traceroot-alert-badge">SCAN FAILED</span>
               <p class="traceroot-error-text">${escapeHtml(result.error)}</p>
               <div class="traceroot-tip">
-                Ensure your FastAPI backend is running at <code>http://localhost:8000/api/scan</code>.
+                Ensure your FastAPI backend is running at <code>https://traceroot-br3o.onrender.com/api/scan</code>.
               </div>
             </div>
           </div>
