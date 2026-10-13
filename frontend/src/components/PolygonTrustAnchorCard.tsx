@@ -78,9 +78,16 @@ export const PolygonTrustAnchorCard: React.FC<PolygonTrustAnchorCardProps> = ({
               <span className="text-[10px] text-stone-400 block font-semibold uppercase tracking-wider">
                 Repository
               </span>
-              <span className="text-white font-bold tracking-tight block mt-0.5 truncate">
-                {currentRepo}
-              </span>
+              <a
+                href={`https://github.com/${currentRepo}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group/repo inline-flex items-center gap-1.5 text-white font-bold tracking-tight mt-0.5 hover:text-emerald-400 transition-colors max-w-full"
+                title={`Open https://github.com/${currentRepo} on GitHub`}
+              >
+                <span className="truncate">{currentRepo}</span>
+                <ExternalLink className="w-3 h-3 text-stone-400 group-hover/repo:text-emerald-400 transition-colors shrink-0" />
+              </a>
             </div>
 
             <div>
