@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, RotateCw, Network, ShieldAlert, ShieldCheck, Activity, Layers, Cpu } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, RotateCw, Network, ShieldAlert, ShieldCheck } from 'lucide-react';
 
 export interface AttackSurfaceModalProps {
   onClose: () => void;
@@ -23,17 +23,27 @@ interface AttackSurfaceNode {
   provenance: string;
 }
 
+// Pre-computed per-node orbit distances (alternating two radii)
+const ORBIT_DISTANCES = [165, 210, 165, 210, 165];
+
 export const AttackSurfaceModal: React.FC<AttackSurfaceModalProps> = ({ onClose, onSelectNodeByName }) => {
   const [angle, setAngle] = useState(24);
-  const [activeVectorNode, setActiveVectorNode] = useState<string>('event-stream-patch');
+  // clickedNode = explicitly clicked (persists on mouse leave)
+  // hoveredNodeName = hover-only (clears on mouse leave)
+  const [clickedNode, setClickedNode] = useState<string | null>(null);
   const [hoveredNodeName, setHoveredNodeName] = useState<string | null>(null);
   const [isAutoRotating, setIsAutoRotating] = useState(true);
+  const angleRef = useRef(24);
 
-  // Smooth autonomous orbit rotation
+  // Telemetry box shows for hovered OR clicked node
+  const activeVectorNode = hoveredNodeName ?? clickedNode;
+
+  // Smooth autonomous orbit — use ref so tick never re-creates interval
   useEffect(() => {
     if (!isAutoRotating) return;
     const interval = setInterval(() => {
-      setAngle((prev) => (prev + 0.3) % 360);
+      angleRef.current = (angleRef.current + 0.3) % 360;
+      setAngle(angleRef.current);
     }, 50);
     return () => clearInterval(interval);
   }, [isAutoRotating]);
@@ -125,10 +135,31 @@ export const AttackSurfaceModal: React.FC<AttackSurfaceModalProps> = ({ onClose,
     },
   ];
 
-  const currentNode = vectorNodes.find((n) => n.name === activeVectorNode) || vectorNodes[1];
+  // Telemetry box data — driven by hover or click
+  const currentNode = activeVectorNode
+    ? (vectorNodes.find((n) => n.name === activeVectorNode) ?? null)
+    : null;
 
-  const handleSelectNode = (name: string) => {
-    setActiveVectorNode(name);
+  // Orbiting nodes = all except root anchor (index 0, @traceroot/core)
+  const orbitingNodes = vectorNodes.slice(1);
+
+  const handleNodeClick = (name: string) => {
+    // Toggle: clicking the same ball again deselects it
+    setClickedNode(prev => prev === name ? null : name);
+  };
+
+  const handleMouseEnter = (name: string) => {
+    setHoveredNodeName(name);
+  };
+
+  const handleMouseLeave = () => {
+    // Clear hover — box hides unless a click is locked
+    setHoveredNodeName(null);
+  };
+
+  const handleCanvasClick = () => {
+    // Clicking empty canvas clears the click lock
+    setClickedNode(null);
   };
 
   return (
@@ -174,7 +205,7 @@ export const AttackSurfaceModal: React.FC<AttackSurfaceModalProps> = ({ onClose,
         </div>
 
         {/* 3D Visual Canvas Area */}
-        <div className="relative flex-1 w-full flex items-center justify-center overflow-hidden bg-[#0c0a09]">
+        <div className="relative flex-1 w-full flex items-center justify-center overflow-hidden bg-[#0c0a09]" onClick={handleCanvasClick}>
           
           {/* Subtle Ambient Radial Backlight */}
           <div className="absolute w-[600px] h-[600px] rounded-full bg-emerald-950/15 blur-3xl pointer-events-none" />
@@ -189,168 +220,207 @@ export const AttackSurfaceModal: React.FC<AttackSurfaceModalProps> = ({ onClose,
           <div className="absolute w-full h-[1px] bg-gradient-to-r from-transparent via-stone-800/35 to-transparent pointer-events-none" />
           <div className="absolute h-full w-[1px] bg-gradient-to-b from-transparent via-stone-800/35 to-transparent pointer-events-none" />
 
-          {/* Central 3D Plane */}
+          {/* Central 3D Plane — no pointer events on the rotating wrapper itself */}
           <div
-            className="relative w-[500px] h-[500px] transition-transform duration-100 flex items-center justify-center"
+            className="relative w-[500px] h-[500px] flex items-center justify-center"
             style={{
               transform: `perspective(900px) rotateX(56deg) rotateZ(${angle}deg)`,
               transformStyle: 'preserve-3d',
             }}
           >
-            {/* Soft Grid Floor */}
-            <div className="absolute inset-0 border border-emerald-900/20 sage-grid opacity-40 rounded-full" />
+            {/* Grid Floor */}
+            <div className="absolute inset-0 border border-emerald-900/20 sage-grid opacity-40 rounded-full pointer-events-none" />
 
-            {/* SVG Dynamic Connection Lines */}
+            {/* SVG Connection Lines */}
             <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 500 500">
               <defs>
-                {vectorNodes.map((node) => (
+                {orbitingNodes.map((node) => (
                   <linearGradient key={`grad-${node.name}`} id={`grad-${node.name}`} x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
                     <stop offset="100%" stopColor={node.color} stopOpacity="0.75" />
                   </linearGradient>
                 ))}
               </defs>
-              {vectorNodes.map((node, index) => {
-                const rad = (angle + index * 60) * (Math.PI / 180);
-                const dist = 165 + (index % 2) * 45;
+              {orbitingNodes.map((node, index) => {
+                const rad = (angle + index * (360 / orbitingNodes.length)) * (Math.PI / 180);
+                const dist = ORBIT_DISTANCES[index] ?? 165;
                 const px = 250 + Math.cos(rad) * dist;
                 const py = 250 + Math.sin(rad) * dist;
-                const isSelected = activeVectorNode === node.name;
-
+                const isActive = activeVectorNode === node.name;
                 return (
                   <g key={`line-${node.name}`}>
-                    <line
-                      x1="250"
-                      y1="250"
-                      x2={px}
-                      y2={py}
+                    <line x1="250" y1="250" x2={px} y2={py}
                       stroke={`url(#grad-${node.name})`}
-                      strokeWidth={isSelected ? 2 : 1.2}
-                      strokeDasharray={isSelected ? 'none' : '4 4'}
-                      strokeOpacity={isSelected ? 0.9 : 0.4}
+                      strokeWidth={isActive ? 2 : 1.2}
+                      strokeDasharray={isActive ? 'none' : '4 4'}
+                      strokeOpacity={isActive ? 0.9 : 0.4}
                     />
-                    {/* Pulsing traversal particle along active vector */}
-                    {isSelected && (
-                      <circle
-                        cx={(250 + px) / 2}
-                        cy={(250 + py) / 2}
-                        r="3"
-                        fill={node.color}
-                        className="animate-ping"
-                      />
+                    {isActive && (
+                      <circle cx={(250 + px) / 2} cy={(250 + py) / 2} r="3" fill={node.color} className="animate-ping" />
                     )}
                   </g>
                 );
               })}
             </svg>
 
-            {/* Center Root Anchor Hub (Glossy 3D Core Sphere) */}
-            <div 
-              className="relative w-14 h-14 rounded-full flex items-center justify-center cursor-pointer group"
-              onClick={() => handleSelectNode('@traceroot/core')}
-              onMouseEnter={() => {
-                setHoveredNodeName('@traceroot/core');
-                handleSelectNode('@traceroot/core');
-              }}
-              onMouseLeave={() => setHoveredNodeName(null)}
+            {/* ── CENTER ROOT NODE
+                 CRITICAL FIX: position via left/top/margin NOT transform:translate
+                 so that counter-rotate scale NEVER moves the anchor point.       */}
+            <div
+              className="absolute cursor-pointer flex items-center justify-center"
               style={{
+                // 70×70 hit area — bigger than sphere at max scale so cursor never exits
+                width: '70px', height: '70px',
+                left: '50%', top: '50%',
+                marginLeft: '-35px', marginTop: '-35px',
                 transform: `rotateZ(-${angle}deg) rotateX(-56deg)`,
                 transformStyle: 'preserve-3d',
+                zIndex: 20,
               }}
+              onClick={(e) => { e.stopPropagation(); handleNodeClick(vectorNodes[0].name); }}
+              onMouseEnter={() => handleMouseEnter(vectorNodes[0].name)}
+              onMouseLeave={handleMouseLeave}
             >
-              {/* Outer Glowing Pulsing Rings */}
               <div className="absolute -inset-2.5 rounded-full border border-emerald-500/30 animate-pulse pointer-events-none" />
               <div className="absolute -inset-5 rounded-full border border-emerald-500/15 pointer-events-none" />
-
-              {/* 3D Glossy Core Sphere */}
+              {/* Scale ONLY the inner sphere div — position container is never scaled */}
               <div
-                className="w-12 h-12 rounded-full relative transition-transform duration-300 group-hover:scale-110"
+                className="w-14 h-14 rounded-full relative"
                 style={{
                   background: 'radial-gradient(circle at 30% 28%, #ffffff 0%, #34d399 25%, #059669 65%, #022c22 100%)',
-                  boxShadow: '0 0 24px rgba(16, 185, 129, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.6), inset -2px -4px 8px rgba(0, 0, 0, 0.8)',
+                  boxShadow: hoveredNodeName === vectorNodes[0].name
+                    ? '0 0 32px rgba(16,185,129,0.75), inset 0 0 12px rgba(255,255,255,0.7), inset -2px -4px 8px rgba(0,0,0,0.8)'
+                    : '0 0 24px rgba(16,185,129,0.6), inset 0 0 10px rgba(255,255,255,0.6), inset -2px -4px 8px rgba(0,0,0,0.8)',
+                  transform: hoveredNodeName === vectorNodes[0].name ? 'scale(1.18)' : 'scale(1)',
+                  transition: 'transform 0.1s ease, box-shadow 0.1s ease',
                 }}
               >
-                {/* Specular Glare */}
                 <div className="absolute top-2 left-2.5 w-3 h-2 rounded-full bg-white/80 blur-[0.6px] -rotate-45 pointer-events-none" />
               </div>
-
-
             </div>
 
-            {/* Orbiting 3D Spheres + Hover-Activated Glassmorphic Info Cards */}
-            {vectorNodes.map((node, index) => {
-              const rad = (angle + index * 60) * (Math.PI / 180);
-              const dist = 165 + (index % 2) * 45;
+            {/* ── ORBITING NODES
+                 CRITICAL FIX: position via left/top/margin NOT transform:translate
+                 Scale applied ONLY to inner sphere div — orbital coordinates never shift. */}
+            {orbitingNodes.map((node, index) => {
+              const rad = (angle + index * (360 / orbitingNodes.length)) * (Math.PI / 180);
+              const dist = ORBIT_DISTANCES[index] ?? 165;
               const px = Math.cos(rad) * dist;
               const py = Math.sin(rad) * dist;
-              const isSelected = activeVectorNode === node.name;
+              const isActive = activeVectorNode === node.name;
               const isHovered = hoveredNodeName === node.name;
-              const isLeft = px < 0;
 
               return (
                 <div
                   key={node.name}
-                  onClick={() => handleSelectNode(node.name)}
-                  onMouseEnter={() => {
-                    setHoveredNodeName(node.name);
-                    handleSelectNode(node.name);
-                  }}
-                  onMouseLeave={() => setHoveredNodeName(null)}
+                  className="absolute cursor-pointer flex items-center justify-center"
                   style={{
-                    transform: `translate(${px}px, ${py}px) rotateZ(-${angle}deg) rotateX(-56deg)`,
+                    // 54×54 hit area — bigger than 34px sphere at max scale(1.22) ≈ 41.5px
+                    // so the cursor never exits the DOM box during scale animation (no flicker)
+                    width: '54px', height: '54px',
+                    left: '50%', top: '50%',
+                    marginLeft: `${px - 27}px`,
+                    marginTop: `${py - 27}px`,
+                    transform: `rotateZ(-${angle}deg) rotateX(-56deg)`,
                     transformStyle: 'preserve-3d',
+                    zIndex: 10,
                   }}
-                  className="absolute cursor-pointer group z-10"
+                  onClick={(e) => { e.stopPropagation(); handleNodeClick(node.name); }}
+                  onMouseEnter={() => handleMouseEnter(node.name)}
+                  onMouseLeave={handleMouseLeave}
                 >
+                  {/* Sphere — 34×34, centered inside the 54×54 hit area */}
                   <div
-                    className={`flex items-center gap-3 transition-all duration-300 ${
-                      isLeft ? 'flex-row-reverse' : 'flex-row'
-                    }`}
+                    style={{
+                      width: '34px', height: '34px',
+                      borderRadius: '50%',
+                      position: 'relative',
+                      flexShrink: 0,
+                      background: `radial-gradient(circle at 30% 28%, #ffffff 0%, ${node.color} 32%, ${node.darkColor} 75%, #0a0a0a 100%)`,
+                      boxShadow: isHovered || isActive
+                        ? `0 0 26px ${node.glowColor}, inset 0 0 10px rgba(255,255,255,0.7), inset -2px -3px 6px rgba(0,0,0,0.85)`
+                        : `0 0 14px ${node.glowColor}, inset 0 0 6px rgba(255,255,255,0.45), inset -2px -3px 5px rgba(0,0,0,0.75)`,
+                      transform: isHovered ? 'scale(1.22)' : 'scale(1)',
+                      transition: 'transform 0.1s ease, box-shadow 0.1s ease',
+                    }}
                   >
-                    {/* Glossy 3D Glowing Sphere (Image 1 Style) */}
-                    <div className="relative flex items-center justify-center">
-                      <div
-                        className={`relative rounded-full transition-all duration-300 flex items-center justify-center ${
-                          isSelected || isHovered ? 'scale-125' : 'group-hover:scale-110'
-                        }`}
-                        style={{
-                          width: '34px',
-                          height: '34px',
-                          background: `radial-gradient(circle at 30% 28%, #ffffff 0%, ${node.color} 32%, ${node.darkColor} 75%, #0a0a0a 100%)`,
-                          boxShadow: isSelected || isHovered
-                            ? `0 0 26px ${node.glowColor}, inset 0 0 10px rgba(255,255,255,0.7), inset -2px -3px 6px rgba(0,0,0,0.85)`
-                            : `0 0 14px ${node.glowColor}, inset 0 0 6px rgba(255,255,255,0.45), inset -2px -3px 5px rgba(0,0,0,0.75)`,
-                        }}
-                      >
-                        {/* Specular White Highlight */}
-                        <div className="absolute top-1.5 left-2 w-2 h-1.5 rounded-full bg-white/90 blur-[0.5px] -rotate-45 pointer-events-none" />
-                        
-                        {/* Bottom Rim Light Reflection */}
-                        <div
-                          className="absolute bottom-1 w-3.5 h-1 rounded-full opacity-70 blur-[0.8px] pointer-events-none"
-                          style={{ backgroundColor: node.color }}
-                        />
-
-                        {/* Pulsing Selection Ring */}
-                        {(isSelected || isHovered) && (
-                          <div
-                            className="absolute -inset-2 rounded-full border animate-ping pointer-events-none opacity-40"
-                            style={{ borderColor: node.color }}
-                          />
-                        )}
-                      </div>
-                    </div>
-
-
-
+                    <div className="absolute top-1.5 left-2 w-2 h-1.5 rounded-full bg-white/90 blur-[0.5px] -rotate-45 pointer-events-none" />
+                    <div className="absolute bottom-1 w-3.5 h-1 rounded-full opacity-70 blur-[0.8px] pointer-events-none" style={{ backgroundColor: node.color, left: '50%', transform: 'translateX(-50%)' }} />
+                    {(isActive || isHovered) && (
+                      <div className="absolute -inset-2 rounded-full border animate-ping pointer-events-none opacity-40" style={{ borderColor: node.color }} />
+                    )}
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Dynamic "VECTOR TARGET LOCK" HUD Box (Bottom-Left) */}
-          <div className="absolute bottom-6 left-6 p-4 rounded-2xl bg-white/[0.03] backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] max-w-sm text-xs transition-all duration-200">
+          {/* ── SINGLE UNIFIED TOOLTIP LAYER (2D, above all 3D transforms) ─────── */}
+          {/* Only ONE card ever renders — no duplicates possible */}
+          {hoveredNodeName && (() => {
+            const node = vectorNodes.find(n => n.name === hoveredNodeName);
+            if (!node) return null;
+
+            if (node.name === vectorNodes[0].name) {
+              // Root node tooltip — placed to the right of center
+              return (
+                <div className="absolute pointer-events-none z-50" style={{ left: 'calc(50% + 52px)', top: 'calc(50% - 20px)' }}>
+                  <div className="px-3.5 py-2.5 rounded-2xl backdrop-blur-xl border border-emerald-500/40 bg-stone-900/95 shadow-2xl min-w-[170px]">
+                    <div className="flex items-center justify-between gap-2.5">
+                      <span className="font-sans font-semibold text-xs text-white tracking-tight">{node.name}</span>
+                      <span className="text-[10px] font-sans font-medium px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">{node.riskLabel}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] font-sans text-stone-400 mt-1">
+                      <span>{node.category}</span>
+                      <span className="font-semibold text-emerald-400">{node.risk}/100</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            // Orbiting node tooltip — project 3D → 2D screen coords
+            const idx = orbitingNodes.findIndex(n => n.name === node.name);
+            const rad = (angle + idx * (360 / orbitingNodes.length)) * (Math.PI / 180);
+            const dist = ORBIT_DISTANCES[idx] ?? 165;
+            const worldX = Math.cos(rad) * dist;
+            const worldY = Math.sin(rad) * dist;
+            const degX = 56 * (Math.PI / 180);
+            const screenX = worldX;
+            const screenY = worldY * Math.cos(degX);
+            const isLeft = screenX < 0;
+
+            return (
+              <div
+                className="absolute pointer-events-none z-50"
+                style={{
+                  left: `calc(50% + ${screenX + (isLeft ? -190 : 24)}px)`,
+                  top: `calc(50% + ${screenY - 20}px)`,
+                }}
+              >
+                <div
+                  className="px-3.5 py-2.5 rounded-2xl backdrop-blur-xl border shadow-2xl min-w-[170px] bg-stone-900/95"
+                  style={{ borderColor: node.color, boxShadow: `0 10px 28px rgba(0,0,0,0.7), 0 0 16px ${node.glowColor}` }}
+                >
+                  <div className="flex items-center justify-between gap-2.5">
+                    <span className="font-sans font-semibold text-xs text-white tracking-tight truncate max-w-[110px]">{node.name}</span>
+                    <span className="text-[10px] font-sans font-medium px-2 py-0.5 rounded-full border whitespace-nowrap"
+                      style={{ color: node.color, backgroundColor: `${node.color}15`, borderColor: `${node.color}35` }}>
+                      {node.riskLabel}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] font-sans text-stone-400 mt-1 gap-2">
+                    <span className="truncate">{node.category}</span>
+                    <span className="font-semibold" style={{ color: node.color }}>{node.risk}/100</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ── VECTOR TARGET LOCK — hidden until user interacts with a node ── */}
+          {currentNode && (
+          <div className="absolute top-6 left-6 p-4 rounded-2xl bg-white/[0.03] backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] max-w-sm text-xs pointer-events-none">
             <div className="flex items-center justify-between mb-2">
               <div className="text-xs text-emerald-400 font-sans font-semibold flex items-center gap-1.5">
                 {currentNode.riskLevel === 'safe' ? (
@@ -360,65 +430,42 @@ export const AttackSurfaceModal: React.FC<AttackSurfaceModalProps> = ({ onClose,
                 )}
                 <span>Vector Target Lock</span>
               </div>
-              <span 
+              <span
                 className="text-[10px] font-sans font-medium px-2 py-0.5 rounded-full border"
-                style={{
-                  color: currentNode.color,
-                  backgroundColor: `${currentNode.color}18`,
-                  borderColor: `${currentNode.color}40`,
-                }}
+                style={{ color: currentNode.color, backgroundColor: `${currentNode.color}18`, borderColor: `${currentNode.color}40` }}
               >
                 {currentNode.riskLabel}
               </span>
             </div>
-
             <div className="flex items-baseline justify-between gap-2">
-              <div className="text-white font-sans font-bold text-sm tracking-tight truncate">
-                {currentNode.name}
-              </div>
-              <span className="text-stone-400 font-sans text-[11px]">
-                {currentNode.version}
-              </span>
+              <div className="text-white font-sans font-bold text-sm tracking-tight truncate">{currentNode.name}</div>
+              <span className="text-stone-400 font-sans text-[11px]">{currentNode.version}</span>
             </div>
-
-            {/* Risk Index Progress Bar */}
             <div className="mt-2 space-y-1">
               <div className="flex items-center justify-between text-[11px] font-sans">
                 <span className="text-stone-400">Threat Index</span>
-                <span className="font-semibold" style={{ color: currentNode.color }}>
-                  {currentNode.risk} / 100
-                </span>
+                <span className="font-semibold" style={{ color: currentNode.color }}>{currentNode.risk} / 100</span>
               </div>
               <div className="w-full h-1.5 rounded-full bg-white/5 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-300"
-                  style={{
-                    width: `${currentNode.risk}%`,
-                    backgroundColor: currentNode.color,
-                  }}
-                />
+                <div className="h-full rounded-full transition-all duration-300" style={{ width: `${currentNode.risk}%`, backgroundColor: currentNode.color }} />
               </div>
             </div>
-
-            <p className="text-stone-300 text-xs font-sans mt-2.5 leading-relaxed">
-              {currentNode.astAnalysis}
-            </p>
-
+            <p className="text-stone-300 text-xs font-sans mt-2.5 leading-relaxed">{currentNode.astAnalysis}</p>
             <div className="mt-2.5 pt-2 border-t border-white/10 flex items-center justify-between text-[11px] font-sans text-stone-400">
               <span className="truncate max-w-[180px]">{currentNode.provenance}</span>
               <span className="font-medium text-stone-300">{currentNode.category}</span>
             </div>
-
             {onSelectNodeByName && (
               <button
                 onClick={() => onSelectNodeByName(currentNode.name)}
-                className="w-full mt-3 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-stone-200 border border-white/10 text-xs font-sans font-medium flex items-center justify-center gap-1.5 transition-colors"
+                className="w-full mt-3 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-stone-200 border border-white/10 text-xs font-sans font-medium flex items-center justify-center gap-1.5 transition-colors pointer-events-auto"
               >
                 <span>Inspect in Threat Audit Drawer</span>
                 <span className="text-emerald-400">→</span>
               </button>
             )}
           </div>
+          )}
 
           {/* Top-Right Telemetry & DevSecOps HUD */}
           <div className="absolute top-6 right-6 p-4 rounded-2xl bg-white/[0.03] backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] font-sans text-xs text-stone-300 space-y-2 min-w-[220px]">

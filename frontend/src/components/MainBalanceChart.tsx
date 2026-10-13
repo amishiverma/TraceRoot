@@ -136,25 +136,31 @@ export const MainBalanceChart: React.FC<MainBalanceChartProps> = ({
         >
           <defs>
             <linearGradient id="warmGlowGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
-              <stop offset="60%" stopColor="#059669" stopOpacity="0.08" />
-              <stop offset="100%" stopColor="#047857" stopOpacity="0.0" />
+              <stop offset="0%" stopColor="#ef4444" stopOpacity="0.42" />
+              <stop offset="50%" stopColor="#dc2626" stopOpacity="0.18" />
+              <stop offset="100%" stopColor="#991b1b" stopOpacity="0.02" />
             </linearGradient>
+            <filter id="redLineGlow" x="-10%" y="-10%" width="120%" height="120%">
+              <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#ef4444" floodOpacity="0.45" />
+            </filter>
           </defs>
 
-          {/* Under Area Fill */}
+          {/* Under Area Fill - Rich & Bold Gradient */}
           <path d={areaPath} fill="url(#warmGlowGradient)" />
 
-          {/* Clean Crisp Bezier Stroke Line (Zero Glow) */}
+          {/* Bold, Sharp Warning Red Bezier Stroke Line */}
           <path
             d={curvePath}
             fill="none"
-            stroke="#10b981"
-            strokeWidth="2.5"
+            stroke="#ef4444"
+            strokeWidth="3.5"
             strokeLinecap="round"
+            strokeLinejoin="round"
+            filter="url(#redLineGlow)"
+            className="opacity-100"
           />
 
-          {/* Interactive Data Points */}
+          {/* Interactive Data Points (Solid Red Nodes with High-Contrast Dark Border) */}
           {points.map((pt, i) => {
             const isHovered = hoveredPoint === i;
             return (
@@ -167,11 +173,11 @@ export const MainBalanceChart: React.FC<MainBalanceChartProps> = ({
                 <circle
                   cx={pt.x}
                   cy={pt.y}
-                  r={isHovered ? 5.5 : 3.5}
-                  fill={isHovered ? '#fff' : '#84cc16'}
-                  stroke="#121412"
-                  strokeWidth="2"
-                  className="transition-all duration-150"
+                  r={isHovered ? 6 : 4.5}
+                  fill={isHovered ? '#ffffff' : '#ef4444'}
+                  stroke="#0b0d0c"
+                  strokeWidth="2.5"
+                  className="transition-all duration-150 drop-shadow-[0_0_6px_rgba(239,68,68,0.7)]"
                 />
               </g>
             );

@@ -247,12 +247,15 @@ export const App: React.FC = () => {
 
           {/* Main Dashboard Column */}
           <div className="flex-1 flex flex-col min-w-0 relative z-10">
-            {/* Top Navigation Bar */}
+            {/* Top Floating Glassmorphic Utility Header */}
             <DashboardHeader
               onOpenSearch={() => setShowCommandPalette(true)}
               onBackToLanding={() => setCurrentView('landing')}
               notifications={mockNotifications}
               currentRepo={currentRepo}
+              onSelectRepo={(repo) => setCurrentRepo(repo)}
+              onSelectPackage={handleSelectPackageByName}
+              nodes={nodes}
             />
 
             {/* Main Content Area */}

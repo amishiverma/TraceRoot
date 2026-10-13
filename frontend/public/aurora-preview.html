@@ -89,9 +89,10 @@
 </head>
 <body>
   <div class="video-container">
-    <video id="bgVideo" autoplay loop muted playsinline preload="auto">
+    <video id="bgVideo" autoplay loop muted playsinline preload="auto" poster="/videos/dashbg_poster.jpg">
+      <source src="/videos/dashbg_clean.mp4" type="video/mp4" />
+      <source src="/videos/dashbg.mp4" type="video/mp4" />
       <source src="/videos/aurora_background_1080p.mp4" type="video/mp4" />
-      <source src="/videos/aurora_background_loop.mp4" type="video/mp4" />
     </video>
     <div class="vignette-overlay"></div>
   </div>

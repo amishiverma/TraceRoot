@@ -44,10 +44,10 @@ const LogoScrollySection: React.FC = () => {
   });
 
   // Cinematic Text Transitions: Strictly non-overlapping ranges (Frame 1 to Frame 185)
-  // Phase 1: Frame 1 to 52 (progress 0.08 -> 0.24)
-  const phase1Opacity = useTransform(smoothProgress, [0.07, 0.09, 0.22, 0.24], [0, 1, 1, 0]);
-  const phase1Y = useTransform(smoothProgress, [0.07, 0.09, 0.22, 0.24], [16, 0, 0, -12]);
-  const phase1Display = useTransform(smoothProgress, (v) => (v >= 0.06 && v <= 0.245 ? 'block' : 'none'));
+  // Phase 1: Frame 1 to 52 (progress 0.0 -> 0.24) - starts immediately from frame 1
+  const phase1Opacity = useTransform(smoothProgress, [0.0, 0.20, 0.24], [1, 1, 0]);
+  const phase1Y = useTransform(smoothProgress, [0.0, 0.20, 0.24], [0, 0, -12]);
+  const phase1Display = useTransform(smoothProgress, (v) => (v <= 0.245 ? 'block' : 'none'));
 
   // Phase 2: Frame 65 to 117 (progress 0.29 -> 0.46)
   const phase2Opacity = useTransform(smoothProgress, [0.28, 0.30, 0.44, 0.46], [0, 1, 1, 0]);
@@ -60,7 +60,7 @@ const LogoScrollySection: React.FC = () => {
   const phase3Display = useTransform(smoothProgress, (v) => (v >= 0.485 && v <= 0.6833 ? 'block' : 'none'));
 
   // Overall overlay container visibility
-  const overlayOpacity = useTransform(smoothProgress, [0.06, 0.08, 0.67, 0.6833], [0, 1, 1, 0]);
+  const overlayOpacity = useTransform(smoothProgress, [0.0, 0.67, 0.6833], [1, 1, 0]);
 
   // Preload logo frames (277 frames, frames 1-23 removed)
   useEffect(() => {

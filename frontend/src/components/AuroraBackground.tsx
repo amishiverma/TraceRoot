@@ -31,12 +31,13 @@ export const AuroraBackground: React.FC<AuroraBackgroundProps> = ({
         loop
         muted
         playsInline
-        poster="/videos/aurora_poster.jpg"
-        className="absolute inset-0 w-full h-full object-cover mix-blend-screen scale-105 pointer-events-none transition-opacity duration-1000"
+        poster="/videos/dashbg_poster.jpg"
+        className="absolute inset-0 w-full h-full object-cover scale-105 pointer-events-none transition-opacity duration-1000"
         style={{ opacity }}
       >
+        <source src="/videos/dashbg_clean.mp4" type="video/mp4" />
+        <source src="/videos/dashbg.mp4" type="video/mp4" />
         <source src="/videos/aurora_background_1080p.mp4" type="video/mp4" />
-        <source src="/videos/aurora_background_loop.mp4" type="video/mp4" />
       </video>
 
       {/* 2. Organic Luminous Aurora Mesh Waves (Olive-Sage, Emerald, Mint Teal) */}
