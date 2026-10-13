@@ -274,23 +274,7 @@ export const AttackSurfaceModal: React.FC<AttackSurfaceModalProps> = ({ onClose,
                 <div className="absolute top-2 left-2.5 w-3 h-2 rounded-full bg-white/80 blur-[0.6px] -rotate-45 pointer-events-none" />
               </div>
 
-              {/* Hover-Activated Card for Root Node */}
-              {hoveredNodeName === '@traceroot/core' && (
-                <div className="absolute left-16 px-3.5 py-2.5 rounded-2xl backdrop-blur-xl border border-emerald-500/40 bg-stone-900/95 shadow-2xl min-w-[170px] pointer-events-none animate-in fade-in zoom-in-95 z-30">
-                  <div className="flex items-center justify-between gap-2.5">
-                    <span className="font-sans font-semibold text-xs text-white tracking-tight">
-                      @traceroot/core
-                    </span>
-                    <span className="text-[10px] font-sans font-medium px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                      Verified Hub
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] font-sans text-stone-400 mt-1">
-                    <span>Root Anchor</span>
-                    <span className="font-semibold text-emerald-400">12/100</span>
-                  </div>
-                </div>
-              )}
+
             </div>
 
             {/* Orbiting 3D Spheres + Hover-Activated Glassmorphic Info Cards */}
@@ -357,38 +341,7 @@ export const AttackSurfaceModal: React.FC<AttackSurfaceModalProps> = ({ onClose,
                       </div>
                     </div>
 
-                    {/* Hover-Activated Floating Glassmorphic Package Info Card */}
-                    {isHovered && (
-                      <div
-                        className="px-3.5 py-2.5 rounded-2xl backdrop-blur-xl border transition-all duration-150 shadow-2xl min-w-[170px] bg-stone-900/95 ring-1 animate-in fade-in zoom-in-95 pointer-events-none z-30"
-                        style={{
-                          borderColor: node.color,
-                          boxShadow: `0 10px 28px rgba(0,0,0,0.7), 0 0 16px ${node.glowColor}`,
-                        }}
-                      >
-                        <div className="flex items-center justify-between gap-2.5">
-                          <span className="font-sans font-semibold text-xs text-white tracking-tight truncate max-w-[110px]">
-                            {node.name}
-                          </span>
-                          <span
-                            className="text-[10px] font-sans font-medium px-2 py-0.5 rounded-full border"
-                            style={{
-                              color: node.color,
-                              backgroundColor: `${node.color}15`,
-                              borderColor: `${node.color}35`,
-                            }}
-                          >
-                            {node.riskLabel}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] font-sans text-stone-400 mt-1 gap-2">
-                          <span className="truncate">{node.category}</span>
-                          <span className="font-semibold" style={{ color: node.color }}>
-                            {node.risk}/100
-                          </span>
-                        </div>
-                      </div>
-                    )}
+
 
                   </div>
                 </div>
