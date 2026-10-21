@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🌲 TraceRoot
+#  TraceRoot
 ### **Autonomous DevSecOps Trust Layer & Supply Chain Integrity Scanner**
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
